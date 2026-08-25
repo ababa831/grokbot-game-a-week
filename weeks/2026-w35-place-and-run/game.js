@@ -649,9 +649,10 @@
       }
       fx.life -= dt;
     }
-    state.effects = state.effects.filter(
-      (fx) => fx.life > 0 || (fx.delay && fx.delay > 0) || !fx.animateInHitstop
-    );
+    state.effects = state.effects.filter((fx) => {
+      if (fx.delay && fx.delay > 0) return true;
+      return fx.life > 0;
+    });
   }
 
   function updateShake(dt) {
@@ -747,21 +748,42 @@
     const pulse = 0.55 + 0.45 * Math.sin((1 - t) * Math.PI * 2 * CFG.burstWarningPulseHz);
     ctx.beginPath();
     ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-    ctx.strokeStyle = CFG.colorBurstWarning;
-    ctx.globalAlpha = CFG.burstWarningStrokeAlphaBase + CFG.burstWarningStrokeAlphaPulse * pulse;
-    ctx.lineWidth = 3;
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(b.x, b.y, b.r * (1 - t), 0, Math.PI * 2);
     ctx.fillStyle = CFG.colorBurstWarning;
-    ctx.globalAlpha = CFG.burstWarningFillAlphaBase + CFG.burstWarningFillAlphaPulse * pulse;
+    ctx.globalAlpha = CFG.burstWarningDiskAlphaBase + CFG.burstWarningDiskAlphaPulse * pulse;
     ctx.fill();
     ctx.globalAlpha = 1;
-    // dark edge ring
+    ctx.strokeStyle = '#0a0a0a';
+    ctx.lineWidth = CFG.burstWarningOuterLineWidthPixels;
+    ctx.stroke();
     ctx.beginPath();
     ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+    ctx.strokeStyle = CFG.colorBurstWarning;
+    ctx.globalAlpha = CFG.burstWarningStrokeAlphaBase + CFG.burstWarningStrokeAlphaPulse * pulse;
+    ctx.lineWidth = CFG.burstWarningBrightLineWidthPixels;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, Math.max(4, b.r * (1 - t)), 0, Math.PI * 2);
+    ctx.fillStyle = CFG.colorBurstWarning;
+    ctx.globalAlpha =
+      CFG.burstWarningFillAlphaBase + CFG.burstWarningFillAlphaPulse * pulse + CFG.burstWarningFillAlphaExtra;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    const arm = CFG.burstWarningCrosshairArmPixels;
     ctx.strokeStyle = '#0a0a0a';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(b.x - arm, b.y);
+    ctx.lineTo(b.x + arm, b.y);
+    ctx.moveTo(b.x, b.y - arm);
+    ctx.lineTo(b.x, b.y + arm);
+    ctx.stroke();
+    ctx.strokeStyle = CFG.colorBurstWarning;
     ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(b.x - arm, b.y);
+    ctx.lineTo(b.x + arm, b.y);
+    ctx.moveTo(b.x, b.y - arm);
+    ctx.lineTo(b.x, b.y + arm);
     ctx.stroke();
   }
 
