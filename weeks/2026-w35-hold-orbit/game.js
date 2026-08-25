@@ -295,7 +295,7 @@
       if (b.kind === "debris") continue;
       if (b.kind === "star" && b.collapse) continue;
       const d = dist(px, py, b.x, b.y);
-      const catchR = b.r + 90 + Math.min(40, b.r * 0.8);
+      const catchR = b.r + 110 + Math.min(50, b.r * 0.9);
       if (d < catchR && d < bestD) {
         bestD = d;
         bestB = b;
@@ -565,18 +565,18 @@
       if (p.life <= 0) particles.splice(i, 1);
     }
 
-    // Collisions
+    // Collisions — while locked, other planets are ghosted (debris/stars still kill)
     for (const b of bodies) {
       const d = dist(player.x, player.y, b.x, b.y);
       if (orbitBody === b) {
-        // Safe while locked — unless star collapses onto you
         if (b.kind === "star" && b.collapse && d < b.r + player.r) {
           killPlayer("rgba(255,80,50,0.95)");
           return;
         }
         continue;
       }
-      const hitR = b.r + player.r - (b.kind === "planet" ? 1 : 0);
+      if (orbitBody && b.kind === "planet") continue;
+      const hitR = b.r + player.r - (b.kind === "planet" ? 2 : 0);
       if (d < hitR) {
         if (b.kind === "debris") killPlayer("rgba(160,200,255,0.9)");
         else if (b.kind === "star") killPlayer("rgba(255,90,60,0.95)");
