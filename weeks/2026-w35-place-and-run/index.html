@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+    <title>置いて逃げろ — Place and Run</title>
+    <meta name="description" content="攻撃は未来に置く。今の自分は当たる側。" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <button type="button" id="mute-btn" aria-label="mute">音声オン</button>
+    <div id="wrap">
+      <div id="hud">
+        <div>
+          <div style="font-size: 11px; opacity: 0.7; margin-bottom: 4px">たいりょく</div>
+          <div class="hp-row" id="hp-row"></div>
+        </div>
+        <div class="wraps">
+          <div class="now">いまの包み <span id="now-wrap">0</span></div>
+          <div class="best">最大包み <span id="best-wrap">0</span></div>
+        </div>
+      </div>
+
+      <div id="canvas-frame">
+        <canvas id="game" width="720" height="480"></canvas>
+        <div id="wave-label">WAVE</div>
+        <div id="wrap-popup"></div>
+        <div id="overlay">
+          <div id="overlay-inner"></div>
+          <button type="button" id="skip-wave-btn" class="skip-wave hidden">次へ</button>
+        </div>
+      </div>
+
+      <div id="hint-bar">
+        <span class="move">移動 WASD / 矢印</span>
+        <span class="plant">設置 Space / Z / クリック</span>
+        <span>DEBUG F1–F5</span>
+      </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="audio.js"></script>
+    <script src="game.js"></script>
+  </body>
+</html>
