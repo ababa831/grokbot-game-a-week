@@ -225,8 +225,20 @@
   }
 
   // —— Overlay ——
+  // Ignore start/retry input for a short latch so death-frame keys don't auto-restart,
+  // and so overlay cannot flicker from the same physical keydown that was already held.
+  let overlayInputArmed = true;
+
+  function armOverlayInputSoon() {
+    overlayInputArmed = false;
+    setTimeout(() => {
+      overlayInputArmed = true;
+    }, CFG.overlayInputArmDelayMilliseconds);
+  }
+
   function showTitle() {
     state.mode = 'title';
+    armOverlayInputSoon();
     overlay.classList.remove('hidden');
     skipWaveBtn.classList.add('hidden');
     overlayInner.innerHTML = `
@@ -250,6 +262,7 @@
 
   function showDead() {
     state.mode = 'dead';
+    armOverlayInputSoon();
     overlay.classList.remove('hidden');
     const showSkip = state.deathsOnCurrentWave >= CFG.deathsOnSameWaveBeforeSkipButton;
     if (showSkip) skipWaveBtn.classList.remove('hidden');
@@ -379,6 +392,7 @@
         r: burst.r,
         life: CFG.burstFlashDurationSeconds,
         maxLife: CFG.burstFlashDurationSeconds,
+        animateInHitstop: true,
       });
       state.effects.push({
         kind: 'burstFire',
@@ -387,7 +401,8 @@
         r: burst.r,
         life: CFG.burstFireDurationSeconds,
         maxLife: CFG.burstFireDurationSeconds,
-        delay: CFG.burstFlashDurationSeconds,
+        delay: 0,
+        animateInHitstop: true,
       });
       state.effects.push({
         kind: 'burstSmoke',
@@ -396,7 +411,8 @@
         r: burst.r * 0.85,
         life: CFG.burstSmokeDurationSeconds,
         maxLife: CFG.burstSmokeDurationSeconds,
-        delay: CFG.burstFlashDurationSeconds + CFG.burstFireDurationSeconds,
+        delay: CFG.burstFireDurationSeconds * 0.55,
+        animateInHitstop: true,
       });
     }
 
@@ -474,11 +490,11 @@
   function update(dt) {
     // Title / dead: wait for mash
     if (state.mode === 'title') {
-      if (anyKeyThisFrame || plantPressedThisFrame) startPlaying();
+      if (overlayInputArmed && (anyKeyThisFrame || plantPressedThisFrame)) startPlaying();
       return;
     }
     if (state.mode === 'dead') {
-      if (plantPressedThisFrame || anyKeyThisFrame) {
+      if (overlayInputArmed && (plantPressedThisFrame || anyKeyThisFrame)) {
         // Space on result restarts (rescue)
         retryFromDeath();
       }

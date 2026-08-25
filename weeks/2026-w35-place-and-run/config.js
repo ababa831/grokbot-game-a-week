@@ -26,9 +26,9 @@ window.PLACE_AND_RUN_CONFIG = Object.freeze({
   burstRadiusPixels: 58,
   burstDamageToEnemyHitPoints: 1,
   burstDamageToPlayerHitPoints: 1,
-  burstFlashDurationSeconds: 1 / 60,
-  burstFireDurationSeconds: 6 / 60,
-  burstSmokeDurationSeconds: 5 / 60,
+  burstFlashDurationSeconds: 2 / 60,
+  burstFireDurationSeconds: 10 / 60,
+  burstSmokeDurationSeconds: 6 / 60,
   burstWarningPulseHz: 6,
 
   // —— Enemies (ONE body, parameter variety only) ——
@@ -89,6 +89,7 @@ window.PLACE_AND_RUN_CONFIG = Object.freeze({
   // —— UI / flow ——
   titleSkipAnyKey: true,
   deathsOnSameWaveBeforeSkipButton: 2,
+  overlayInputArmDelayMilliseconds: 200,
   startOverlayGiantFontPixels: 96,
   wrapPopupDurationSeconds: 0.7,
   wrapPopupBigThreshold: 3,
