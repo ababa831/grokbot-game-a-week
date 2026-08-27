@@ -586,7 +586,7 @@
       const dy = pointerAim.y - p.y;
       const pointerDistance = Math.hypot(dx, dy);
       const aimingIntoOwnBurst = state.bursts.some(
-        (b) => !b.detonated && dist(pointerAim.x, pointerAim.y, b.x, b.y) <= b.r
+        (b) => !b.detonated && dist(pointerAim.x, pointerAim.y, b.x, b.y) <= b.r + p.r
       );
       if (pointerDistance > CFG.pointerMoveDeadzonePixels && !aimingIntoOwnBurst) {
         mx = dx / pointerDistance;
