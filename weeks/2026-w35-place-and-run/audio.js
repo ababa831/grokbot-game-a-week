@@ -24,13 +24,17 @@
     return 1 + (Math.random() * 2 - 1) * f;
   }
 
+  let cachedNoiseBuffer = null;
+
   function noiseBuffer(durationSec) {
     const a = ensureCtx();
     if (!a) return null;
+    if (cachedNoiseBuffer) return cachedNoiseBuffer;
     const len = Math.max(1, Math.floor(a.sampleRate * durationSec));
     const buf = a.createBuffer(1, len, a.sampleRate);
     const data = buf.getChannelData(0);
     for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+    cachedNoiseBuffer = buf;
     return buf;
   }
 

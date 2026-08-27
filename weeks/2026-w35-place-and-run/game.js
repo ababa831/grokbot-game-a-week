@@ -27,13 +27,27 @@
   let plantPressedThisFrame = false;
   let anyKeyThisFrame = false;
   let pointerDownPlant = false;
+  const pointerAim = {
+    x: CFG.arenaWidthPixels * 0.5,
+    y: CFG.arenaHeightPixels * 0.5,
+    overCanvas: false,
+  };
 
   const PLANT_KEYS = new Set([' ', 'Spacebar', 'z', 'Z', 'Space']);
   const START_IGNORE = new Set(['F1', 'F2', 'F3', 'F4', 'F5']);
 
+  function canvasPointFromClient(clientX, clientY) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / Math.max(1, rect.width);
+    const scaleY = canvas.height / Math.max(1, rect.height);
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY,
+    };
+  }
+
   window.addEventListener('keydown', (e) => {
     keys[e.code] = true;
-    keys[e.key] = true;
     if (PLANT_KEYS.has(e.key) || e.code === 'Space' || e.code === 'KeyZ') {
       plantPressedThisFrame = true;
       e.preventDefault();
@@ -46,19 +60,34 @@
 
   window.addEventListener('keyup', (e) => {
     keys[e.code] = false;
-    keys[e.key] = false;
+  });
+
+  canvas.addEventListener('pointermove', (e) => {
+    const pt = canvasPointFromClient(e.clientX, e.clientY);
+    pointerAim.x = pt.x;
+    pointerAim.y = pt.y;
+    pointerAim.overCanvas = true;
+  });
+
+  canvas.addEventListener('pointerleave', () => {
+    pointerAim.overCanvas = false;
   });
 
   canvas.addEventListener('pointerdown', (e) => {
     e.preventDefault();
+    const pt = canvasPointFromClient(e.clientX, e.clientY);
+    pointerAim.x = pt.x;
+    pointerAim.y = pt.y;
+    pointerAim.overCanvas = true;
     AudioSys.unlock();
     pointerDownPlant = true;
     plantPressedThisFrame = true;
     anyKeyThisFrame = true;
   });
 
-  document.addEventListener('pointerdown', () => {
+  document.addEventListener('pointerdown', (e) => {
     AudioSys.unlock();
+    if (e.target instanceof Element && e.target.closest('button')) return;
     anyKeyThisFrame = true;
   });
 
@@ -85,6 +114,7 @@
   function handleDebugKey(e) {
     if (e.key === 'F1') {
       e.preventDefault();
+      if (!state.player) return;
       state.player.hp = CFG.playerMaxHitPoints;
       updateHud();
     } else if (e.key === 'F2') {
@@ -246,7 +276,7 @@
       <div class="hook">攻撃は未来に置く。今の自分は当たる側。</div>
       <div class="giant-start" id="giant-start">START</div>
       <div class="controls">
-        <span class="move">移動 WASD / ←↑↓→</span>
+        <span class="move">移動 ポインタ方向 / WASD</span>
         <span class="plant">設置 Space / Z / クリック</span>
       </div>
       <div class="sub">何かキーを押せば即プレイ</div>
@@ -377,7 +407,7 @@
     const p = state.player;
     const pd = dist(burst.x, burst.y, p.x, p.y);
     if (pd <= burst.r + p.r) {
-      damagePlayer(1);
+      damagePlayer(CFG.burstDamageToPlayerHitPoints);
       spawnHitMark(p.x, p.y);
     }
 
@@ -547,10 +577,19 @@
     const p = state.player;
     let mx = 0;
     let my = 0;
-    if (keys['KeyW'] || keys['ArrowUp'] || keys['w'] || keys['W']) my -= 1;
-    if (keys['KeyS'] || keys['ArrowDown'] || keys['s'] || keys['S']) my += 1;
-    if (keys['KeyA'] || keys['ArrowLeft'] || keys['a'] || keys['A']) mx -= 1;
-    if (keys['KeyD'] || keys['ArrowRight'] || keys['d'] || keys['D']) mx += 1;
+    if (keys['KeyW'] || keys['ArrowUp']) my -= 1;
+    if (keys['KeyS'] || keys['ArrowDown']) my += 1;
+    if (keys['KeyA'] || keys['ArrowLeft']) mx -= 1;
+    if (keys['KeyD'] || keys['ArrowRight']) mx += 1;
+    if (mx === 0 && my === 0 && pointerAim.overCanvas) {
+      const dx = pointerAim.x - p.x;
+      const dy = pointerAim.y - p.y;
+      const pointerDistance = Math.hypot(dx, dy);
+      if (pointerDistance > CFG.pointerMoveDeadzonePixels) {
+        mx = dx / pointerDistance;
+        my = dy / pointerDistance;
+      }
+    }
     if (mx !== 0 || my !== 0) {
       const len = Math.hypot(mx, my) || 1;
       mx /= len;

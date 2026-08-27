@@ -1,5 +1,5 @@
 /* 置いて逃げろ — layout & typography (no browser default body font) */
-@import url('https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Black+Ops+One&display=swap');
+@import 'https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Black+Ops+One&display=swap';
 
 :root {
   --bg: #0d0f14;
@@ -10,7 +10,7 @@
   --danger: #ff5c5c;
   --best: #ff9f1c;
   --font-ui: 'Zen Kaku Gothic New', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
-  --font-display: 'Black Ops One', 'Zen Kaku Gothic New', Impact, sans-serif;
+  --font-display: 'Black Ops One', 'Zen Kaku Gothic New', impact, sans-serif;
 }
 
 * {
@@ -140,7 +140,8 @@ body {
   font-family: var(--font-display);
   font-size: clamp(64px, 18vw, 96px);
   color: var(--text);
-  text-shadow: 4px 4px 0 #0a0a0a, 0 0 0 3px var(--plant);
+  text-shadow: 4px 4px 0 #0a0a0a;
+  -webkit-text-stroke: 1px var(--plant);
   animation: pulse-start 0.7s ease-in-out infinite alternate;
   cursor: pointer;
   line-height: 1;

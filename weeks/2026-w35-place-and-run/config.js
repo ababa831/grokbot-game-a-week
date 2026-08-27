@@ -19,6 +19,7 @@ window.PLACE_AND_RUN_CONFIG = Object.freeze({
   playerPlantStretchScaleX: 0.7,
   playerPlantStretchScaleY: 1.35,
   playerInvincibleAfterHitSeconds: 0.55,
+  pointerMoveDeadzonePixels: 18,
 
   // —— Burst (the core verb) ——
   plantDelaySeconds: 0.45,
