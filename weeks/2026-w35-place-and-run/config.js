@@ -24,7 +24,7 @@ window.PLACE_AND_RUN_CONFIG = Object.freeze({
   // —— Burst (the core verb) ——
   plantDelaySeconds: 0.45,
   plantCooldownSeconds: 0.35,
-  burstRadiusPixels: 58,
+  burstRadiusPixels: 42,
   burstDamageToEnemyHitPoints: 1,
   burstDamageToPlayerHitPoints: 1,
   burstFlashDurationSeconds: 2 / 60,
@@ -56,7 +56,7 @@ window.PLACE_AND_RUN_CONFIG = Object.freeze({
     // breath
     Object.freeze({ enemyCount: 5, speedMultiplier: 0.9, sizeMultiplier: 1.1, hitPoints: 2, colorHex: '#b388ff', labelJa: '厚み' }),
     // peak
-    Object.freeze({ enemyCount: 16, speedMultiplier: 1.5, sizeMultiplier: 0.8, hitPoints: 1, colorHex: '#ff2d95', labelJa: '包み時' }),
+    Object.freeze({ enemyCount: 16, speedMultiplier: 1.5, sizeMultiplier: 0.8, hitPoints: 1, colorHex: '#ff2d95', labelJa: 'ピーク' }),
   ]),
 
   // —— Feel: hitstop ——

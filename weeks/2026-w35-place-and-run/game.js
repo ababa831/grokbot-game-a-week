@@ -299,7 +299,7 @@
     else skipWaveBtn.classList.add('hidden');
     overlayInner.innerHTML = `
       <div class="result-line">やられた</div>
-      <div class="result-line" style="color:var(--best)">最大包み ${state.bestWrap}</div>
+      <div class="result-line" style="color:var(--best)">最大ヒット ${state.bestWrap}</div>
       <div class="giant-start" id="giant-start">START</div>
       <div class="sub">Space / クリックで即リトライ</div>
     `;
@@ -335,7 +335,7 @@
   }
 
   function showWrapPopup(n) {
-    wrapPopup.textContent = n >= CFG.wrapPopupBigThreshold ? `包み ×${n}！` : `包み ${n}`;
+    wrapPopup.textContent = n >= CFG.wrapPopupBigThreshold ? `ヒット ×${n}！` : `ヒット ${n}`;
     wrapPopup.classList.toggle('big', n >= CFG.wrapPopupBigThreshold);
     wrapPopup.classList.add('show');
     state.wrapPopupTimer = CFG.wrapPopupDurationSeconds;
@@ -585,7 +585,10 @@
       const dx = pointerAim.x - p.x;
       const dy = pointerAim.y - p.y;
       const pointerDistance = Math.hypot(dx, dy);
-      if (pointerDistance > CFG.pointerMoveDeadzonePixels) {
+      const aimingIntoOwnBurst = state.bursts.some(
+        (b) => !b.detonated && dist(pointerAim.x, pointerAim.y, b.x, b.y) <= b.r
+      );
+      if (pointerDistance > CFG.pointerMoveDeadzonePixels && !aimingIntoOwnBurst) {
         mx = dx / pointerDistance;
         my = dy / pointerDistance;
       }
