@@ -31,46 +31,46 @@ window.FLIP_GRAVITY_CONFIG = Object.freeze({
   flipCooldownSeconds: 0.12,
   flipVelocityBoostPixelsPerSecond: 80,
   flipVfxLifetimeSeconds: 0.22,
+  flipInvincibleSeconds: 0.18,
 
   // —— Hazards (ONE body: spike wedge, varied by size/speed/placement) ——
   spikeBaseWidthPixels: 22,
   spikeBaseHeightPixels: 18,
+  spikeHitboxInsetPixels: 4,
   moverBaseSpeedPixelsPerSecond: 90,
-  moverHitboxInsetPixels: 2,
+  moverHitboxInsetPixels: 4,
 
   // —— Rooms (peaky — NOT a smooth ramp). Easy opener, then spikes & breath. ——
   // Each room: platforms, spikes (surface + params), movers, goalX relative to room
   rooms: Object.freeze([
-    // 開幕 — gap + ceiling spikes: flip to walk ceiling over the pit
+    // 開幕 — clean pit: flip to ceiling over the gap (no spikes on the path)
     Object.freeze({
       labelJa: '開幕',
       platforms: Object.freeze([
-        Object.freeze({ x: 0, y: 444, w: 280, h: 36 }),
-        Object.freeze({ x: 420, y: 444, w: 380, h: 36 }),
+        Object.freeze({ x: 0, y: 444, w: 260, h: 36 }),
+        Object.freeze({ x: 440, y: 444, w: 360, h: 36 }),
         Object.freeze({ x: 0, y: 0, w: 800, h: 36 }),
       ]),
-      spikes: Object.freeze([
-        Object.freeze({ x: 120, surface: 'ceiling', count: 4, sizeMul: 1 }),
-        Object.freeze({ x: 500, surface: 'ceiling', count: 3, sizeMul: 1 }),
-      ]),
+      spikes: Object.freeze([]),
       movers: Object.freeze([]),
       spawnX: 60,
       spawnSurface: 'floor',
       goalX: 760,
     }),
-    // 尖り① — spike floor stretch: must flip early
+    // 尖り① — floor spikes: flip to clear ceiling (ceiling mostly safe)
     Object.freeze({
       labelJa: '尖り①',
       platforms: Object.freeze([
-        Object.freeze({ x: 0, y: 444, w: 160, h: 36 }),
-        Object.freeze({ x: 160, y: 444, w: 400, h: 36 }),
+        Object.freeze({ x: 0, y: 444, w: 180, h: 36 }),
+        Object.freeze({ x: 180, y: 444, w: 380, h: 36 }),
         Object.freeze({ x: 640, y: 444, w: 160, h: 36 }),
         Object.freeze({ x: 0, y: 0, w: 800, h: 36 }),
       ]),
       spikes: Object.freeze([
-        Object.freeze({ x: 180, surface: 'floor', count: 10, sizeMul: 1.05 }),
-        Object.freeze({ x: 100, surface: 'ceiling', count: 2, sizeMul: 0.9 }),
-        Object.freeze({ x: 620, surface: 'ceiling', count: 3, sizeMul: 1 }),
+        Object.freeze({ x: 200, surface: 'floor', count: 8, sizeMul: 1 }),
+        // decoy ceiling spikes only above the SAFE floor start/end — not on travel path
+        Object.freeze({ x: 40, surface: 'ceiling', count: 2, sizeMul: 0.85 }),
+        Object.freeze({ x: 700, surface: 'ceiling', count: 2, sizeMul: 0.85 }),
       ]),
       movers: Object.freeze([]),
       spawnX: 50,
@@ -85,47 +85,17 @@ window.FLIP_GRAVITY_CONFIG = Object.freeze({
         Object.freeze({ x: 0, y: 0, w: 800, h: 36 }),
       ]),
       spikes: Object.freeze([
-        Object.freeze({ x: 350, surface: 'ceiling', count: 4, sizeMul: 1 }),
+        Object.freeze({ x: 380, surface: 'ceiling', count: 3, sizeMul: 0.9 }),
       ]),
       movers: Object.freeze([
         Object.freeze({
-          x: 280,
-          y: 280,
-          w: 28,
-          h: 28,
-          axis: 'x',
-          range: 180,
-          speedMul: 0.7,
-          sizeMul: 1.1,
-        }),
-      ]),
-      spawnX: 50,
-      spawnSurface: 'floor',
-      goalX: 760,
-    }),
-    // 尖り② — pit + spike ceiling corridor + mover
-    Object.freeze({
-      labelJa: '尖り②',
-      platforms: Object.freeze([
-        Object.freeze({ x: 0, y: 444, w: 200, h: 36 }),
-        Object.freeze({ x: 340, y: 444, w: 140, h: 36 }),
-        Object.freeze({ x: 620, y: 444, w: 180, h: 36 }),
-        Object.freeze({ x: 0, y: 0, w: 800, h: 36 }),
-      ]),
-      spikes: Object.freeze([
-        Object.freeze({ x: 220, surface: 'ceiling', count: 8, sizeMul: 1.1 }),
-        Object.freeze({ x: 360, surface: 'floor', count: 3, sizeMul: 1 }),
-        Object.freeze({ x: 640, surface: 'floor', count: 2, sizeMul: 0.95 }),
-      ]),
-      movers: Object.freeze([
-        Object.freeze({
-          x: 400,
-          y: 200,
+          x: 260,
+          y: 300,
           w: 26,
           h: 26,
-          axis: 'y',
-          range: 120,
-          speedMul: 1.15,
+          axis: 'x',
+          range: 200,
+          speedMul: 0.55,
           sizeMul: 1,
         }),
       ]),
@@ -133,7 +103,37 @@ window.FLIP_GRAVITY_CONFIG = Object.freeze({
       spawnSurface: 'floor',
       goalX: 760,
     }),
-    // 厚み — two movers + mixed spikes (breath after peak)
+    // 尖り② — pit + choose: floor spikes on island OR ceiling path with sparse spikes
+    Object.freeze({
+      labelJa: '尖り②',
+      platforms: Object.freeze([
+        Object.freeze({ x: 0, y: 444, w: 200, h: 36 }),
+        Object.freeze({ x: 340, y: 444, w: 160, h: 36 }),
+        Object.freeze({ x: 620, y: 444, w: 180, h: 36 }),
+        Object.freeze({ x: 0, y: 0, w: 800, h: 36 }),
+      ]),
+      spikes: Object.freeze([
+        Object.freeze({ x: 360, surface: 'floor', count: 4, sizeMul: 1 }),
+        // ceiling spikes only over the mid island — commit to sides of ceiling
+        Object.freeze({ x: 360, surface: 'ceiling', count: 4, sizeMul: 1 }),
+      ]),
+      movers: Object.freeze([
+        Object.freeze({
+          x: 420,
+          y: 220,
+          w: 24,
+          h: 24,
+          axis: 'y',
+          range: 90,
+          speedMul: 0.85,
+          sizeMul: 0.95,
+        }),
+      ]),
+      spawnX: 50,
+      spawnSurface: 'floor',
+      goalX: 760,
+    }),
+    // 厚み — two slow movers + mixed spikes (breath before peak)
     Object.freeze({
       labelJa: '厚み',
       platforms: Object.freeze([
@@ -143,70 +143,71 @@ window.FLIP_GRAVITY_CONFIG = Object.freeze({
         Object.freeze({ x: 0, y: 0, w: 800, h: 36 }),
       ]),
       spikes: Object.freeze([
-        Object.freeze({ x: 300, surface: 'floor', count: 5, sizeMul: 1 }),
-        Object.freeze({ x: 80, surface: 'ceiling', count: 3, sizeMul: 1 }),
-        Object.freeze({ x: 500, surface: 'ceiling', count: 4, sizeMul: 1.05 }),
+        Object.freeze({ x: 300, surface: 'floor', count: 4, sizeMul: 1 }),
+        Object.freeze({ x: 100, surface: 'ceiling', count: 2, sizeMul: 0.9 }),
+        Object.freeze({ x: 560, surface: 'ceiling', count: 3, sizeMul: 1 }),
       ]),
       movers: Object.freeze([
         Object.freeze({
           x: 200,
-          y: 300,
-          w: 24,
-          h: 24,
+          y: 320,
+          w: 22,
+          h: 22,
           axis: 'x',
-          range: 140,
-          speedMul: 0.9,
-          sizeMul: 0.95,
+          range: 120,
+          speedMul: 0.7,
+          sizeMul: 0.9,
         }),
         Object.freeze({
-          x: 520,
-          y: 160,
-          w: 30,
-          h: 30,
+          x: 500,
+          y: 180,
+          w: 26,
+          h: 26,
           axis: 'y',
-          range: 100,
-          speedMul: 1.0,
-          sizeMul: 1.15,
+          range: 80,
+          speedMul: 0.75,
+          sizeMul: 1,
         }),
       ]),
       spawnX: 50,
       spawnSurface: 'floor',
       goalX: 760,
     }),
-    // ピーク — commit hard: long spike floor, fast saws, tight ceiling
+    // ピーク — commit hard, but leave ceiling lanes between spike clusters
     Object.freeze({
       labelJa: 'ピーク',
       platforms: Object.freeze([
-        Object.freeze({ x: 0, y: 444, w: 120, h: 36 }),
-        Object.freeze({ x: 120, y: 444, w: 480, h: 36 }),
+        Object.freeze({ x: 0, y: 444, w: 130, h: 36 }),
+        Object.freeze({ x: 130, y: 444, w: 460, h: 36 }),
         Object.freeze({ x: 680, y: 444, w: 120, h: 36 }),
         Object.freeze({ x: 0, y: 0, w: 800, h: 36 }),
       ]),
       spikes: Object.freeze([
-        Object.freeze({ x: 140, surface: 'floor', count: 14, sizeMul: 1.1 }),
-        Object.freeze({ x: 200, surface: 'ceiling', count: 6, sizeMul: 1 }),
-        Object.freeze({ x: 500, surface: 'ceiling', count: 5, sizeMul: 1.15 }),
+        Object.freeze({ x: 160, surface: 'floor', count: 10, sizeMul: 1.05 }),
+        Object.freeze({ x: 220, surface: 'ceiling', count: 3, sizeMul: 1 }),
+        Object.freeze({ x: 420, surface: 'ceiling', count: 3, sizeMul: 1 }),
+        Object.freeze({ x: 600, surface: 'ceiling', count: 2, sizeMul: 1 }),
       ]),
       movers: Object.freeze([
         Object.freeze({
-          x: 300,
-          y: 240,
-          w: 28,
-          h: 28,
+          x: 280,
+          y: 260,
+          w: 26,
+          h: 26,
           axis: 'x',
-          range: 200,
-          speedMul: 1.4,
-          sizeMul: 1.05,
+          range: 160,
+          speedMul: 1.1,
+          sizeMul: 1,
         }),
         Object.freeze({
-          x: 560,
-          y: 180,
-          w: 32,
-          h: 32,
+          x: 540,
+          y: 200,
+          w: 28,
+          h: 28,
           axis: 'y',
-          range: 140,
-          speedMul: 1.35,
-          sizeMul: 1.2,
+          range: 100,
+          speedMul: 1.05,
+          sizeMul: 1.1,
         }),
       ]),
       spawnX: 40,

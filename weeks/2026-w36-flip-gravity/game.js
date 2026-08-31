@@ -32,20 +32,30 @@
   const MOVE_LEFT = new Set(['ArrowLeft', 'KeyA']);
   const MOVE_RIGHT = new Set(['ArrowRight', 'KeyD']);
 
-  window.addEventListener('keydown', (e) => {
-    keys[e.code] = true;
-    if (FLIP_CODES.has(e.code)) {
-      flipPressedThisFrame = true;
-      e.preventDefault();
-    }
-    if (MOVE_LEFT.has(e.code) || MOVE_RIGHT.has(e.code)) {
-      e.preventDefault();
-    }
-    if (!START_IGNORE.has(e.code) && !e.code.startsWith('F')) {
-      anyKeyThisFrame = true;
-    }
-    handleDebugKey(e);
-  });
+  window.addEventListener(
+    'keydown',
+    (e) => {
+      // Capture F-keys before browser default (F5 refresh etc.)
+      if (e.code === 'F1' || e.code === 'F2' || e.code === 'F3' || e.code === 'F4' || e.code === 'F5') {
+        e.preventDefault();
+        e.stopPropagation();
+        handleDebugKey(e);
+        return;
+      }
+      keys[e.code] = true;
+      if (FLIP_CODES.has(e.code)) {
+        flipPressedThisFrame = true;
+        e.preventDefault();
+      }
+      if (MOVE_LEFT.has(e.code) || MOVE_RIGHT.has(e.code)) {
+        e.preventDefault();
+      }
+      if (!START_IGNORE.has(e.code) && !e.code.startsWith('F')) {
+        anyKeyThisFrame = true;
+      }
+    },
+    true
+  );
 
   window.addEventListener('keyup', (e) => {
     keys[e.code] = false;
@@ -415,6 +425,7 @@
     // Movers keep physics; gravity flip is visual/world for player + spike lethality
     state.hitstopRemaining = Math.max(state.hitstopRemaining, CFG.hitstopOnFlipSeconds);
     state.shakeAmount = Math.max(state.shakeAmount, CFG.shakeOnFlipPixels);
+    if (p) p.invuln = Math.max(p.invuln, CFG.flipInvincibleSeconds);
     spawnFlipVfx();
     AudioSys.flip();
   }
@@ -639,7 +650,14 @@
 
     for (const spike of state.spikes) {
       if (!spikeIsLethal(spike)) continue;
-      if (rectsOverlap(p, spike)) {
+      const inset = CFG.spikeHitboxInsetPixels;
+      const hit = {
+        x: spike.x + inset,
+        y: spike.y + inset,
+        w: Math.max(2, spike.w - inset * 2),
+        h: Math.max(2, spike.h - inset * 2),
+      };
+      if (rectsOverlap(p, hit)) {
         hurtPlayer(spike.x + spike.w * 0.5, spike.y + spike.h * 0.5);
         return;
       }
@@ -945,7 +963,13 @@
     }
     for (const s of state.spikes) {
       if (!spikeIsLethal(s)) continue;
-      ctx.strokeRect(s.x, s.y, s.w, s.h);
+      const inset = CFG.spikeHitboxInsetPixels;
+      ctx.strokeRect(
+        s.x + inset,
+        s.y + inset,
+        Math.max(2, s.w - inset * 2),
+        Math.max(2, s.h - inset * 2)
+      );
     }
     for (const m of state.movers) {
       ctx.strokeRect(m.x, m.y, m.w, m.h);
