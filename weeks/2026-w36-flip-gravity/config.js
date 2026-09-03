@@ -26,6 +26,9 @@ window.FLIP_GRAVITY_CONFIG = Object.freeze({
   gravityPixelsPerSecondSquared: 1600,
   maxFallSpeedPixelsPerSecond: 720,
   coyoteTimeSeconds: 0.08,
+  groundedProbePixels: 2,
+  fallOutMarginPixels: 40,
+  hurtKnockbackPixelsPerSecond: 280,
 
   // —— Flip (core verb) ——
   flipCooldownSeconds: 0.12,
@@ -233,6 +236,9 @@ window.FLIP_GRAVITY_CONFIG = Object.freeze({
   // —— Feel: VFX ——
   landDustLifetimeSeconds: 0.18,
   landDustParticleCount: 6,
+  landDustSpeedMinPixelsPerSecond: 40,
+  landDustSpeedRangePixelsPerSecond: 80,
+  landDustGravityPixelsPerSecondSquared: 400,
   flipRingLifetimeSeconds: 0.2,
   flipRingMaxRadiusPixels: 48,
   hitMarkLifetimeSeconds: 5 / 60,

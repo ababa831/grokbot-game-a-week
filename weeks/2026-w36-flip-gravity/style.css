@@ -27,10 +27,9 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-ui);
-  overflow: hidden;
+  overflow: auto;
   user-select: none;
   -webkit-user-select: none;
-  touch-action: none;
 }
 
 #wrap {
@@ -102,6 +101,7 @@ body {
   height: auto;
   background: var(--floor);
   cursor: pointer;
+  touch-action: none;
 }
 
 #overlay {

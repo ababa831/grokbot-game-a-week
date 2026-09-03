@@ -25,6 +25,7 @@
   // —— Input: track e.code only (no stuck keys) ——
   const keys = Object.create(null);
   let flipPressedThisFrame = false;
+  let flipBuffered = false;
   let anyKeyThisFrame = false;
 
   const FLIP_CODES = new Set(['Space']);
@@ -44,13 +45,13 @@
       }
       keys[e.code] = true;
       if (FLIP_CODES.has(e.code)) {
-        flipPressedThisFrame = true;
+        if (!e.repeat) flipPressedThisFrame = true;
         e.preventDefault();
       }
       if (MOVE_LEFT.has(e.code) || MOVE_RIGHT.has(e.code)) {
         e.preventDefault();
       }
-      if (!START_IGNORE.has(e.code) && !e.code.startsWith('F')) {
+      if (!e.repeat && !START_IGNORE.has(e.code) && !e.code.startsWith('F')) {
         anyKeyThisFrame = true;
       }
     },
@@ -83,6 +84,7 @@
   muteBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     const m = AudioSys.toggleMute();
+    muteBtn.setAttribute('aria-pressed', String(m));
     muteBtn.textContent = m ? '音声オフ' : '音声オン';
   });
 
@@ -157,7 +159,7 @@
       vy: 0,
       hp: CFG.playerMaxHitPoints,
       invuln: 0,
-      grounded: false,
+      grounded: true,
       coyote: 0,
       landPose: 0,
       flipPose: 0,
@@ -260,7 +262,7 @@
     state.flipCooldown = 0;
     state.clearPopupTimer = 0;
     state.breathTimer = 0;
-    state.wasGrounded = false;
+    state.wasGrounded = true;
     if (!keepRoom) {
       state.roomIndex = 0;
       state.roomsCleared = 0;
@@ -417,12 +419,12 @@
     state.flipCooldown = CFG.flipCooldownSeconds;
     const p = state.player;
     if (p) {
-      p.vy = -state.gravitySign * CFG.flipVelocityBoostPixelsPerSecond;
+      p.vy = state.gravitySign * CFG.flipVelocityBoostPixelsPerSecond;
       p.flipPose = CFG.playerPoseRecoverSeconds;
       p.grounded = false;
       p.coyote = 0;
     }
-    // Movers keep physics; gravity flip is visual/world for player + spike lethality
+    // World flip: player + spike lethality + movers (Y-reflected in updateMovers)
     state.hitstopRemaining = Math.max(state.hitstopRemaining, CFG.hitstopOnFlipSeconds);
     state.shakeAmount = Math.max(state.shakeAmount, CFG.shakeOnFlipPixels);
     if (p) p.invuln = Math.max(p.invuln, CFG.flipInvincibleSeconds);
@@ -446,7 +448,8 @@
     if (debug.hideVfx) return;
     for (let i = 0; i < CFG.landDustParticleCount; i++) {
       const ang = Math.PI * (0.15 + Math.random() * 0.7) * (Math.random() < 0.5 ? 1 : -1);
-      const spd = 40 + Math.random() * 80;
+      const spd =
+        CFG.landDustSpeedMinPixelsPerSecond + Math.random() * CFG.landDustSpeedRangePixelsPerSecond;
       state.effects.push({
         kind: 'dust',
         x: px,
@@ -506,17 +509,7 @@
         }
         ent.vy = 0;
       }
-      // Arena clamp
-      if (ent.y < 0) {
-        ent.y = 0;
-        ent.vy = 0;
-        if (state.gravitySign < 0) hitGround = true;
-      }
-      if (ent.y + ent.h > CFG.arenaHeightPixels) {
-        ent.y = CFG.arenaHeightPixels - ent.h;
-        ent.vy = 0;
-        if (state.gravitySign > 0) hitGround = true;
-      }
+      // Do not clamp arena Y — pits must fall through to the out-of-world death check
       return hitGround;
     }
     return false;
@@ -565,7 +558,7 @@
       // Check if still supported
       const probe = {
         x: p.x,
-        y: p.y + state.gravitySign * 2,
+        y: p.y + state.gravitySign * CFG.groundedProbePixels,
         w: p.w,
         h: p.h,
       };
@@ -610,7 +603,10 @@
     }
 
     // Fall out of world = death
-    if (p.y > CFG.arenaHeightPixels + 40 || p.y + p.h < -40) {
+    if (
+      p.y > CFG.arenaHeightPixels + CFG.fallOutMarginPixels ||
+      p.y + p.h < -CFG.fallOutMarginPixels
+    ) {
       killPlayer();
     }
   }
@@ -625,14 +621,11 @@
         m.phase = 0;
         m.dir = 1;
       }
-      // Oscillate in room space (parameter variety only — no AI). Position is world-fixed.
-      if (m.axis === 'x') {
-        m.x = m.originX + m.phase;
-        m.y = m.originY;
-      } else {
-        m.x = m.originX;
-        m.y = m.originY + m.phase;
-      }
+      // Oscillate in room space (parameter variety only — no AI).
+      // When gravity is up, reflect Y so the hazard flips with the world.
+      const localY = m.axis === 'y' ? m.originY + m.phase : m.originY;
+      m.x = m.axis === 'x' ? m.originX + m.phase : m.originX;
+      m.y = state.gravitySign > 0 ? localY : CFG.arenaHeightPixels - localY - m.h;
     }
   }
 
@@ -684,7 +677,7 @@
     p.hp -= 1;
     p.invuln = CFG.playerInvincibleAfterHitSeconds;
     p.hurtPose = CFG.playerHurtFlashDurationSeconds;
-    p.vy = -state.gravitySign * 280;
+    p.vy = -state.gravitySign * CFG.hurtKnockbackPixelsPerSecond;
     state.hitstopRemaining = Math.max(state.hitstopRemaining, CFG.hitstopOnHazardHitSeconds);
     state.shakeAmount = Math.max(state.shakeAmount, CFG.shakeOnHazardHitPixels);
     spawnHitMark(hx, hy);
@@ -744,7 +737,9 @@
     state.player = makePlayer(def.spawnX, def.spawnSurface);
     if (def.spawnSurface === 'ceiling') state.gravitySign = -1;
     state.effects = [];
-    state.wasGrounded = false;
+    state.hitstopRemaining = 0;
+    state.flipCooldown = 0;
+    state.wasGrounded = true;
     state.mode = 'playing';
     updateHud();
   }
@@ -755,7 +750,7 @@
       if (e.kind === 'dust') {
         e.x += e.vx * dt;
         e.y += e.vy * dt;
-        e.vy += state.gravitySign * 400 * dt;
+        e.vy += state.gravitySign * CFG.landDustGravityPixelsPerSecondSquared * dt;
       }
     }
     state.effects = state.effects.filter((e) => e.life > 0);
@@ -1009,6 +1004,9 @@
   }
 
   function render() {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = CFG.colorArenaSky;
+    ctx.fillRect(0, 0, CFG.arenaWidthPixels, CFG.arenaHeightPixels);
     ctx.save();
     // Screen shake — max then decay
     if (state.shakeAmount > CFG.shakeAmountCutoffPixels) {
@@ -1047,14 +1045,17 @@
     lastTs = ts;
     const dt = Math.min(rawDt, CFG.maxFrameDeltaSeconds);
 
-    // Overlay mash-to-start / retry
-    if (
-      (state.mode === 'title' || state.mode === 'dead' || state.mode === 'win') &&
-      overlayInputArmed &&
-      (anyKeyThisFrame || flipPressedThisFrame)
-    ) {
+    // Overlay mash-to-start / retry. Win breath must finish before mash can restart.
+    const overlayAcceptsStart =
+      state.mode === 'title' ||
+      state.mode === 'dead' ||
+      (state.mode === 'win' && state.breathTimer <= 0);
+    if (overlayAcceptsStart && overlayInputArmed && (anyKeyThisFrame || flipPressedThisFrame)) {
       if (state.mode === 'title' || state.mode === 'win') startPlaying();
       else retryFromDeath();
+      flipPressedThisFrame = false;
+      flipBuffered = false;
+      anyKeyThisFrame = false;
     }
 
     if (state.mode === 'playing') {
@@ -1062,9 +1063,11 @@
       if (state.hitstopRemaining > 0) {
         state.hitstopRemaining -= dt;
         updateEffects(dt);
+        if (flipPressedThisFrame) flipBuffered = true;
       } else {
         if (state.flipCooldown > 0) state.flipCooldown -= dt;
-        if (flipPressedThisFrame) doFlip();
+        if (flipPressedThisFrame || flipBuffered) doFlip();
+        flipBuffered = false;
         updatePlayer(dt);
         updateMovers(dt);
         checkHazards();
@@ -1073,6 +1076,7 @@
       }
     } else if (state.mode === 'breath' || (state.mode === 'win' && state.breathTimer > 0)) {
       state.breathTimer -= dt;
+      if (state.hitstopRemaining > 0) state.hitstopRemaining -= dt;
       updateEffects(dt);
       if (state.breathTimer <= 0) {
         if (state.mode === 'win') showWin();
