@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ひっくり返せ — Flip Gravity</title>
+    <meta name="description" content="クリックすると世界の上下が入れ替わる。床が天井になる。" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <button type="button" id="mute-btn" aria-pressed="false">音声オン</button>
+    <div id="wrap">
+      <div id="hud">
+        <div>
+          <div style="font-size: 11px; opacity: 0.7; margin-bottom: 4px">たいりょく</div>
+          <div class="hp-row" id="hp-row"></div>
+        </div>
+        <div class="scores">
+          <div class="now">いまの部屋 <span id="now-rooms">0</span></div>
+          <div class="best">最大部屋 <span id="best-rooms">0</span></div>
+        </div>
+      </div>
+
+      <div id="canvas-frame">
+        <canvas id="game" width="800" height="480"></canvas>
+        <div id="room-label">ROOM</div>
+        <div id="clear-popup"></div>
+        <div id="overlay">
+          <div id="overlay-inner"></div>
+          <button type="button" id="skip-room-btn" class="skip-room hidden">次へ</button>
+        </div>
+      </div>
+
+      <div id="hint-bar">
+        <span class="move">移動 ←→ / A D</span>
+        <span class="flip">ひっくり返す クリック / Space</span>
+        <span>DEBUG F1–F5</span>
+      </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="audio.js"></script>
+    <script src="game.js"></script>
+  </body>
+</html>
