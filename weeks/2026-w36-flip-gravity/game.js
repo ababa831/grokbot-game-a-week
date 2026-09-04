@@ -125,7 +125,8 @@
 
   // —— Game state ——
   const state = {
-    mode: 'title', // title | playing | breath | dead | win
+    mode: 'title', // title | howto | playing | breath | dead | win
+    howToIndex: 0,
     player: null,
     platforms: [],
     spikes: [],
@@ -315,15 +316,86 @@
         <span class="move">移動 ←→ / A D</span>
         <span class="flip">ひっくり返す クリック / Space</span>
       </div>
-      <div class="sub">何かキーを押せば即プレイ</div>
+      <div class="sub">何かキーを押せば説明へ</div>
     `;
     const gs = document.getElementById('giant-start');
     if (gs) {
       gs.addEventListener('click', (e) => {
         e.stopPropagation();
-        startPlaying();
+        beginHowTo();
       });
     }
+  }
+
+  const HOWTO_SLIDES = Object.freeze([
+    Object.freeze({
+      kicker: '1 / 3',
+      titleJa: 'あなたはコレ',
+      bodyJa: 'この四角が自分。←→ / A D で歩く。',
+      art: '<div class="how-art" aria-hidden="true"><div class="player"></div><div class="cursor"></div><div class="cursor-stem"></div></div>',
+      nextJa: 'つぎ',
+    }),
+    Object.freeze({
+      kicker: '2 / 3',
+      titleJa: 'ゴールを目指そう',
+      bodyJa: '緑の旗まで進もう。クリック / Space で上下が入れ替わる。',
+      art: '<div class="how-art" aria-hidden="true"><div class="goal-pole"></div><div class="goal-flag"></div></div>',
+      nextJa: 'つぎ',
+    }),
+    Object.freeze({
+      kicker: '3 / 3',
+      titleJa: '＋は危険',
+      bodyJa: '触るとやられる。ひっくり返せば避けられる。',
+      art: '<div class="how-art" aria-hidden="true"><div class="plus"></div></div>',
+      nextJa: 'はじめる',
+    }),
+  ]);
+
+  function beginHowTo() {
+    AudioSys.unlock();
+    resetRun(false);
+    showHowTo(0);
+  }
+
+  function showHowTo(index) {
+    state.mode = 'howto';
+    state.howToIndex = index;
+    overlayInputArmed = false;
+    setTimeout(() => {
+      overlayInputArmed = true;
+    }, CFG.howToInputArmDelayMilliseconds);
+    overlay.classList.remove('hidden');
+    overlay.classList.add('howto');
+    skipRoomBtn.classList.add('hidden');
+    const slide = HOWTO_SLIDES[index];
+    const dots = HOWTO_SLIDES.map((_, i) => `<span class="${i === index ? 'on' : ''}"></span>`).join('');
+    overlayInner.innerHTML = `
+      <div class="how-card">
+        <div class="how-kicker">${slide.kicker}</div>
+        <div class="how-title">${slide.titleJa}</div>
+        ${slide.art}
+        <div class="how-body">${slide.bodyJa}</div>
+        <div class="how-dots">${dots}</div>
+        <button type="button" class="how-next" id="how-next">${slide.nextJa}</button>
+        <div class="sub">Space / クリックで進む</div>
+      </div>
+    `;
+    const next = document.getElementById('how-next');
+    if (next) {
+      next.addEventListener('click', (e) => {
+        e.stopPropagation();
+        advanceHowTo();
+      });
+    }
+  }
+
+  function advanceHowTo() {
+    AudioSys.unlock();
+    if (state.howToIndex >= HOWTO_SLIDES.length - 1) {
+      startPlaying();
+      return;
+    }
+    showHowTo(state.howToIndex + 1);
   }
 
   function showDead() {
@@ -370,6 +442,7 @@
 
   function hideOverlay() {
     overlay.classList.add('hidden');
+    overlay.classList.remove('howto');
     skipRoomBtn.classList.add('hidden');
   }
 
@@ -1048,10 +1121,13 @@
     // Overlay mash-to-start / retry. Win breath must finish before mash can restart.
     const overlayAcceptsStart =
       state.mode === 'title' ||
+      state.mode === 'howto' ||
       state.mode === 'dead' ||
       (state.mode === 'win' && state.breathTimer <= 0);
     if (overlayAcceptsStart && overlayInputArmed && (anyKeyThisFrame || flipPressedThisFrame)) {
-      if (state.mode === 'title' || state.mode === 'win') startPlaying();
+      if (state.mode === 'howto') advanceHowTo();
+      else if (state.mode === 'title') beginHowTo();
+      else if (state.mode === 'win') startPlaying();
       else retryFromDeath();
       flipPressedThisFrame = false;
       flipBuffered = false;

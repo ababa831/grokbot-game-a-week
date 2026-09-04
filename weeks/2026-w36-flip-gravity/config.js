@@ -259,6 +259,8 @@ window.FLIP_GRAVITY_CONFIG = Object.freeze({
   // —— UI / flow ——
   deathsOnSameRoomBeforeSkipButton: 2,
   overlayInputArmDelayMilliseconds: 200,
+  howToInputArmDelayMilliseconds: 140,
+  howToSlideCount: 3,
   clearPopupDurationSeconds: 0.85,
   roomBreathSeconds: 0.35,
   goalReachDistancePixels: 28,

@@ -215,6 +215,182 @@ body {
   display: none;
 }
 
+#overlay.howto {
+  background: rgba(8, 10, 14, 0.55);
+  justify-content: center;
+  padding: 16px;
+}
+
+.how-card {
+  width: min(92%, 420px);
+  background: #161b24;
+  border: 3px solid #0a0a0a;
+  box-shadow: 6px 6px 0 #0a0a0a;
+  padding: 18px 18px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.how-card .how-kicker {
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  color: var(--flip);
+}
+
+.how-card .how-title {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 6vw, 36px);
+  line-height: 1.15;
+  text-shadow: 3px 3px 0 #0a0a0a;
+}
+
+.how-card .how-body {
+  font-size: 16px;
+  font-weight: 700;
+  max-width: 22em;
+}
+
+.how-art {
+  position: relative;
+  width: 220px;
+  height: 132px;
+  margin: 6px 0 2px;
+  background: #141820;
+  border: 3px solid #0a0a0a;
+}
+
+.how-art .player {
+  position: absolute;
+  left: 54px;
+  top: 46px;
+  width: 36px;
+  height: 44px;
+  background: #f0e6d2;
+  border: 3px solid #0a0a0a;
+  box-shadow: inset 0 7px 0 #ffcc33;
+}
+
+.how-art .player::after {
+  content: '';
+  position: absolute;
+  right: 8px;
+  top: 14px;
+  width: 7px;
+  height: 7px;
+  background: #0a0a0a;
+}
+
+.how-art .cursor {
+  position: absolute;
+  left: 104px;
+  top: 36px;
+  width: 0;
+  height: 0;
+  border-left: 14px solid transparent;
+  border-right: 14px solid transparent;
+  border-bottom: 26px solid #ffcc33;
+  transform: rotate(-42deg);
+  filter: drop-shadow(2px 2px 0 #0a0a0a);
+}
+
+.how-art .cursor-stem {
+  position: absolute;
+  left: 132px;
+  top: 62px;
+  width: 12px;
+  height: 34px;
+  background: #ffcc33;
+  border: 2px solid #0a0a0a;
+  transform: rotate(-42deg);
+  transform-origin: top center;
+}
+
+.how-art .goal-pole {
+  position: absolute;
+  left: 102px;
+  top: 16px;
+  width: 10px;
+  height: 100px;
+  background: #3ecf8e;
+  border: 3px solid #0a1a10;
+}
+
+.how-art .goal-flag {
+  position: absolute;
+  left: 112px;
+  top: 22px;
+  width: 0;
+  height: 0;
+  border-top: 14px solid transparent;
+  border-bottom: 14px solid transparent;
+  border-left: 34px solid #3ecf8e;
+  filter: drop-shadow(2px 2px 0 #0a1a10);
+}
+
+.how-art .plus {
+  position: absolute;
+  left: 78px;
+  top: 32px;
+  width: 64px;
+  height: 64px;
+  background: #ff9f1c;
+  border: 3px solid #1a0a00;
+  border-radius: 50%;
+}
+
+.how-art .plus::before,
+.how-art .plus::after {
+  content: '';
+  position: absolute;
+  background: #1a0a00;
+}
+
+.how-art .plus::before {
+  left: 27px;
+  top: 12px;
+  width: 10px;
+  height: 40px;
+}
+
+.how-art .plus::after {
+  left: 12px;
+  top: 27px;
+  width: 40px;
+  height: 10px;
+}
+
+.how-dots {
+  display: flex;
+  gap: 8px;
+}
+
+.how-dots span {
+  width: 10px;
+  height: 10px;
+  background: #3a3f4b;
+  border: 2px solid #0a0a0a;
+}
+
+.how-dots span.on {
+  background: var(--flip);
+}
+
+.how-next {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 6vw, 40px);
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  text-shadow: 3px 3px 0 #0a0a0a;
+  -webkit-text-stroke: 1px var(--flip);
+  animation: pulse-start 0.7s ease-in-out infinite alternate;
+  cursor: pointer;
+  line-height: 1;
+}
+
 #hint-bar {
   width: min(100%, 800px);
   display: flex;
