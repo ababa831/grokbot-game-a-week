@@ -255,17 +255,30 @@ body {
 
 .how-art {
   position: relative;
-  width: 220px;
-  height: 132px;
+  width: 240px;
+  height: 148px;
   margin: 6px 0 2px;
   background: #141820;
+  background-image: linear-gradient(#1a2230, #141820);
   border: 3px solid #0a0a0a;
+  overflow: hidden;
+}
+
+.how-art .floor {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 22px;
+  background: #3a4455;
+  border-top: 3px solid #0a0a0a;
+  box-shadow: inset 0 4px 0 #5a6a7e;
 }
 
 .how-art .player {
   position: absolute;
-  left: 54px;
-  top: 46px;
+  left: 58px;
+  bottom: 24px;
   width: 36px;
   height: 44px;
   background: #f0e6d2;
@@ -285,55 +298,56 @@ body {
 
 .how-art .cursor {
   position: absolute;
-  left: 104px;
-  top: 36px;
+  left: 86px;
+  top: 28px;
+  filter: drop-shadow(2px 2px 0 #0a0a0a);
+  transform: rotate(-8deg);
+}
+
+.how-art.goal .goal-bar-edge {
+  position: absolute;
+  right: 58px;
+  top: 8px;
+  bottom: 8px;
+  width: 16px;
+  background: #0a1a10;
+}
+
+.how-art.goal .goal-bar {
+  position: absolute;
+  right: 61px;
+  top: 11px;
+  bottom: 11px;
+  width: 10px;
+  background: #3ecf8e;
+}
+
+.how-art.goal .goal-flag-edge {
+  position: absolute;
+  right: 18px;
+  top: 18px;
   width: 0;
   height: 0;
-  border-left: 14px solid transparent;
-  border-right: 14px solid transparent;
-  border-bottom: 26px solid #ffcc33;
-  transform: rotate(-42deg);
-  filter: drop-shadow(2px 2px 0 #0a0a0a);
+  border-top: 16px solid transparent;
+  border-bottom: 16px solid transparent;
+  border-left: 40px solid #0a1a10;
 }
 
-.how-art .cursor-stem {
+.how-art.goal .goal-flag {
   position: absolute;
-  left: 132px;
-  top: 62px;
-  width: 12px;
-  height: 34px;
-  background: #ffcc33;
-  border: 2px solid #0a0a0a;
-  transform: rotate(-42deg);
-  transform-origin: top center;
-}
-
-.how-art .goal-pole {
-  position: absolute;
-  left: 102px;
-  top: 16px;
-  width: 10px;
-  height: 100px;
-  background: #3ecf8e;
-  border: 3px solid #0a1a10;
-}
-
-.how-art .goal-flag {
-  position: absolute;
-  left: 112px;
+  right: 24px;
   top: 22px;
   width: 0;
   height: 0;
-  border-top: 14px solid transparent;
-  border-bottom: 14px solid transparent;
-  border-left: 34px solid #3ecf8e;
-  filter: drop-shadow(2px 2px 0 #0a1a10);
+  border-top: 12px solid transparent;
+  border-bottom: 12px solid transparent;
+  border-left: 30px solid #3ecf8e;
 }
 
 .how-art .plus {
   position: absolute;
-  left: 78px;
-  top: 32px;
+  left: 88px;
+  top: 36px;
   width: 64px;
   height: 64px;
   background: #ff9f1c;

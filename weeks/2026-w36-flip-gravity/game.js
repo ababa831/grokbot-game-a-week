@@ -330,23 +330,23 @@
   const HOWTO_SLIDES = Object.freeze([
     Object.freeze({
       kicker: '1 / 3',
-      titleJa: 'あなたはコレ',
+      titleJa: 'あなたはコレです',
       bodyJa: 'この四角が自分。←→ / A D で歩く。',
-      art: '<div class="how-art" aria-hidden="true"><div class="player"></div><div class="cursor"></div><div class="cursor-stem"></div></div>',
+      art: '<div class="how-art you" aria-hidden="true"><div class="floor"></div><div class="player"></div><svg class="cursor" viewBox="0 0 24 32" width="36" height="48"><path d="M2 1 L2 26 L8 21 L12 31 L16 29 L12 19 L22 19 Z" fill="#ffcc33" stroke="#0a0a0a" stroke-width="2.4" stroke-linejoin="round"/></svg></div>',
       nextJa: 'つぎ',
     }),
     Object.freeze({
       kicker: '2 / 3',
       titleJa: 'ゴールを目指そう',
-      bodyJa: '緑の旗まで進もう。クリック / Space で上下が入れ替わる。',
-      art: '<div class="how-art" aria-hidden="true"><div class="goal-pole"></div><div class="goal-flag"></div></div>',
+      bodyJa: 'ゴールのバーまで進みましょう。クリック / Space で上下が入れ替わります！',
+      art: '<div class="how-art goal" aria-hidden="true"><div class="floor"></div><div class="goal-bar-edge"></div><div class="goal-bar"></div><div class="goal-flag-edge"></div><div class="goal-flag"></div></div>',
       nextJa: 'つぎ',
     }),
     Object.freeze({
       kicker: '3 / 3',
       titleJa: '＋は危険',
-      bodyJa: '触るとやられる。ひっくり返せば避けられる。',
-      art: '<div class="how-art" aria-hidden="true"><div class="plus"></div></div>',
+      bodyJa: 'オレンジの＋に触るとやられる。クリックで上下を入れ替えて避けよう。',
+      art: '<div class="how-art plus-shot" aria-hidden="true"><div class="floor"></div><div class="plus"></div></div>',
       nextJa: 'はじめる',
     }),
   ]);
