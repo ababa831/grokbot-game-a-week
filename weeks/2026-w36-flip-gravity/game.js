@@ -339,7 +339,7 @@
       kicker: '2 / 3',
       titleJa: 'ゴールを目指そう',
       bodyJa: 'ゴールのバーまで進みましょう。クリック / Space で上下が入れ替わります！',
-      art: '<div class="how-art goal" aria-hidden="true"><div class="floor"></div><div class="goal-bar-edge"></div><div class="goal-bar"></div><div class="goal-flag-edge"></div><div class="goal-flag"></div></div>',
+      art: '<div class="how-art goal" aria-hidden="true"><div class="ceil"></div><div class="floor"></div><div class="goal-bar-edge"></div><div class="goal-bar"></div><div class="goal-flag-edge"></div><div class="goal-flag"></div></div>',
       nextJa: 'つぎ',
     }),
     Object.freeze({

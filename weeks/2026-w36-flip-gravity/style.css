@@ -304,44 +304,54 @@ body {
   transform: rotate(-8deg);
 }
 
+.how-art .ceil {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 16px;
+  background: #3a4455;
+  border-bottom: 3px solid #0a0a0a;
+}
+
 .how-art.goal .goal-bar-edge {
   position: absolute;
-  right: 58px;
-  top: 8px;
-  bottom: 8px;
-  width: 16px;
+  left: 108px;
+  top: 0;
+  bottom: 0;
+  width: 20px;
   background: #0a1a10;
 }
 
 .how-art.goal .goal-bar {
   position: absolute;
-  right: 61px;
-  top: 11px;
-  bottom: 11px;
-  width: 10px;
+  left: 112px;
+  top: 0;
+  bottom: 0;
+  width: 12px;
   background: #3ecf8e;
 }
 
 .how-art.goal .goal-flag-edge {
   position: absolute;
-  right: 18px;
-  top: 18px;
+  left: 128px;
+  top: 28px;
   width: 0;
   height: 0;
-  border-top: 16px solid transparent;
-  border-bottom: 16px solid transparent;
-  border-left: 40px solid #0a1a10;
+  border-top: 11px solid transparent;
+  border-bottom: 11px solid transparent;
+  border-left: 26px solid #0a1a10;
 }
 
 .how-art.goal .goal-flag {
   position: absolute;
-  right: 24px;
-  top: 22px;
+  left: 130px;
+  top: 31px;
   width: 0;
   height: 0;
-  border-top: 12px solid transparent;
-  border-bottom: 12px solid transparent;
-  border-left: 30px solid #3ecf8e;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-left: 20px solid #3ecf8e;
 }
 
 .how-art .plus {
