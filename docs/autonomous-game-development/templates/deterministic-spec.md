@@ -12,12 +12,14 @@
 | 現状態 (Current) | 入力 / トリガー (Input) | 遷移条件 (Condition) | 次状態 (Next) | 副作用 / アクション (Side Effect) |
 |---|---|---|---|---|
 | IDLE | 入力（左右） | 地面接地 (`grounded == true`) | RUN | 移動アニメ再生、速度加算 |
-| IDLE / RUN | ジャンプボタン押下 | 地面接地 または コヨーテタイム内 | JUMP_RISE | 上昇初速付与、コヨーテ消費、SE再生 |
-| JUMP_RISE | ジャンプボタン離上 | `velocity.y > 0` | JUMP_RISE | 上昇速度を50%カット (`velocity.y *= 0.5`) |
-| JUMP_RISE | 頂点到達 | `velocity.y <= 0` | JUMP_FALL | 下降重力倍率（1.8倍）適用 |
+| IDLE / RUN | ジャンプボタン押下 | 地面接地 または コヨーテタイム内 | JUMP_RISE | 上昇初速付与（`JUMP_IMPULSE`）、コヨーテ消費、SE再生 |
+| JUMP_RISE | ジャンプボタン離上 | 上昇中（`velocity.y < 0`、画面Y下向き） | JUMP_RISE | 上昇速度を50%カット (`velocity.y *= 0.5`) |
+| JUMP_RISE | 頂点到達 | `velocity.y >= 0` | JUMP_FALL | 下降重力倍率（1.8倍）適用 |
 | JUMP_FALL | 地面接触 | コライダー衝突検知 | LANDING | 着地硬直（2F）、着地煙エフェクト |
-| JUMP_FALL | ジャンプボタン押下 | 着地前5F以内 (`dist_to_ground < threshold`) | JUMP_FALL | 先行入力バッファに登録 (`jump_buffered = true`) |
-| ATTACK_ACTIVE | 敵コライダー接触 | 攻撃ID未消費 | HIT_STOP | 攻撃側・被弾側アニメ3F凍結、微小振動 |
+| JUMP_FALL | ジャンプボタン押下 | 着地前 `BUFFER_FRAMES`（6F）以内 | JUMP_FALL | 先行入力バッファに登録 (`jump_buffered = true`) |
+| LANDING | バッファ消費 | `jump_buffered == true`（着地フレーム） | JUMP_RISE | バッファ消費・クリア (`jump_buffered = false`)、上昇初速付与 |
+| LANDING | 硬直終了 | `landing_frames_remaining == 0` かつ `jump_buffered == false` | IDLE / RUN | 通常操作へ復帰 |
+| ATTACK_ACTIVE | 敵コライダー接触 | 攻撃ID未消費 | HIT_STOP | 攻撃側・被弾側のみ独立タイマーで3〜10F凍結（ポーズUIは継続更新） |
 
 ## 2. 入力優先度マトリクス（Input Priority Matrix）
 同一フレームに複数の入力が競合した場合の優先順位：
@@ -36,10 +38,14 @@
 | ジャンプ初速 | `JUMP_IMPULSE` | -450 | px/s | -350--600 | 最大ジャンプ高到達のための初速 |
 | コヨーテタイム | `COYOTE_FRAMES` | 6 | frames | 4-8 | 足場から落下後のジャンプ受付猶予 (~0.1s) |
 | 先行入力猶予 | `BUFFER_FRAMES` | 6 | frames | 4-8 | 着地前のジャンプ入力保持猶予 (~0.1s) |
-| ヒットストップ（弱） | `HITSTOP_LIGHT` | 3 | frames | 2-4 | 軽攻撃命中時の双方アニメ凍結時間 |
-| ヒットストップ（強） | `HITSTOP_HEAVY` | 8 | frames | 6-12 | 重攻撃・会心時。カメラシェイク同期 |
+| ヒットストップ（弱） | `HITSTOP_LIGHT` | 3 | frames | 3-5 | 軽攻撃命中時。攻撃側・被弾側のみ凍結（全体時間は止めない） |
+| ヒットストップ（強） | `HITSTOP_HEAVY` | 8 | frames | 6-10 | 重攻撃・会心時。標準範囲は3〜10F。カメラシェイク同期 |
+| 崖端入力閾値 | `EDGE_STOP_INPUT` | 0.70 | stick | 0.60-0.80 | 水平入力がこの値未満なら Edge Stop、以上なら落下許可 |
+| 崖掴まり救済距離 | `LEDGE_GRAB_REACH` | 12 / 24 | px | 8-16 / 16-32 | 水平≤12px・垂直≤24pxなら Ledge Grab（優先度: Grab > Edge Stop > 落下） |
 | カメラ先読みオフセット | `LOOK_AHEAD_X` | 120 | px | 80-200 | 水平移動時に進行方向前方へ寄せる距離 |
 | UI遷移最長時間 | `UI_TRANSITION_MAX` | 0.12 | s | 0.08-0.15 | メニュー開閉・タブ切り替えのアニメ上限 |
+| 警告点滅周期 | `WARN_BLINK_PERIOD` | 0.50 | s | ≥0.50 | 重要警告の点滅周期下限（2Hz以下。3Hz超禁止） |
+| 警告点滅上限 | `WARN_BLINK_MAX` | 3.0 | s | 1.0-3.0 | 連続点滅の最大継続。超過後は静的警告表示へ切替 |
 
 ## 4. 境界条件・例外処理定義（Edge Cases）
 - **画面端の到達**:
