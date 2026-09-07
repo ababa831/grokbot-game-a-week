@@ -582,6 +582,17 @@
     target.x = px;
     target.y = py;
 
+    // Swapping with a key claims it immediately (don't leave it behind).
+    if (target.kind === 'key' && !target.taken) {
+      target.taken = true;
+      state.keysHeld += 1;
+      state.hitstopRemaining = Math.max(state.hitstopRemaining, CFG.hitstopOnKeyPickupSeconds);
+      state.shakeAmount = Math.max(state.shakeAmount, CFG.shakeOnKeyPickupPixels);
+      spawnHitMark(tx, ty);
+      AudioSys.key();
+      updateHud();
+    }
+
     p.stun = CFG.swapStunSeconds;
     p.swapPose = CFG.playerPoseRecoverSeconds;
     p.scaleX = CFG.playerSwapStretchScaleX;
