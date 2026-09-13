@@ -363,15 +363,15 @@
     Object.freeze({
       kicker: '2 / 3',
       titleJa: '鍵を集めよう',
-      bodyJa: '黄色い◆が「鍵」。必要数そろえて出口へ。',
-      art: '<div class="how-art key-shot" aria-hidden="true"><div class="key"></div><div class="key-label">鍵</div></div>',
+      bodyJa: '黄色い◆が「鍵」。赤い床は棘で、触るとたいりょくが減る。穴は落ちたら即やられる。',
+      art: '<div class="how-art key-shot" aria-hidden="true"><div class="spikes"></div><div class="key"></div><div class="key-label">鍵 / 棘</div></div>',
       nextJa: 'つぎ',
     }),
     Object.freeze({
       kicker: '3 / 3',
       titleJa: 'クリックで入れ替え',
-      bodyJa: '敵・鍵・水色の石をクリックすると場所が入れ替わる。入れ替え後は短い隙！',
-      art: '<div class="how-art swap-shot" aria-hidden="true"><div class="player"></div><div class="swap-arrows"></div><div class="enemy"></div><svg class="cursor" viewBox="0 0 24 32" width="36" height="48"><path d="M2 1 L2 26 L8 21 L12 31 L16 29 L12 19 L22 19 Z" fill="#66d9ef" stroke="#0a0a0a" stroke-width="2.4" stroke-linejoin="round"/></svg></div>',
+      bodyJa: '敵・鍵・水色の石と場所が入れ替わる。棘は歩いて渡らず、向こうの石や敵を奪って飛び越えろ。',
+      art: '<div class="how-art swap-shot" aria-hidden="true"><div class="player"></div><div class="spikes mid"></div><div class="swap-arrows"></div><div class="enemy"></div><svg class="cursor" viewBox="0 0 24 32" width="36" height="48"><path d="M2 1 L2 26 L8 21 L12 31 L16 29 L12 19 L22 19 Z" fill="#66d9ef" stroke="#0a0a0a" stroke-width="2.4" stroke-linejoin="round"/></svg></div>',
       nextJa: 'はじめる',
     }),
   ]);
@@ -768,25 +768,28 @@
 
     if (p.stun > 0) return;
 
-    // Movement: pointer aim (primary) or click-move target
-    let tx = null;
-    let ty = null;
+    // Click-move uses arrive distance only. Pointer follow uses a larger deadzone.
+    // Mixing them stranded the player ~20px short of the click.
     if (clickMoveTarget) {
-      tx = clickMoveTarget.x;
-      ty = clickMoveTarget.y;
-      if (dist(p.x, p.y, tx, ty) <= CFG.clickMoveArriveDistancePixels) {
+      const dx = clickMoveTarget.x - p.x;
+      const dy = clickMoveTarget.y - p.y;
+      const d = Math.hypot(dx, dy);
+      if (d <= CFG.clickMoveArriveDistancePixels) {
         clickMoveTarget = null;
-        tx = null;
+      } else {
+        const spd = CFG.playerMoveSpeedPixelsPerSecond;
+        p.x += (dx / d) * spd * dt;
+        p.y += (dy / d) * spd * dt;
+        p.facingX = dx / d;
+        p.facingY = dy / d;
+        resolveCircleVsWalls(p);
+        return;
       }
     }
-    if (tx === null && pointerAim.overCanvas) {
-      tx = pointerAim.x;
-      ty = pointerAim.y;
-    }
 
-    if (tx !== null) {
-      const dx = tx - p.x;
-      const dy = ty - p.y;
+    if (pointerAim.overCanvas) {
+      const dx = pointerAim.x - p.x;
+      const dy = pointerAim.y - p.y;
       const d = Math.hypot(dx, dy);
       if (d > CFG.pointerMoveDeadzonePixels) {
         const spd = CFG.playerMoveSpeedPixelsPerSecond;

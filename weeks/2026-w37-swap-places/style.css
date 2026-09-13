@@ -327,9 +327,27 @@ body {
   right: 6px;
 }
 
+.how-art .spikes {
+  position: absolute;
+  left: 18px;
+  top: 52px;
+  width: 36px;
+  height: 44px;
+  background: #c43c48;
+  border: 3px solid #1a0508;
+  box-shadow: inset 0 -8px 0 #1a0508;
+}
+
+.how-art .spikes.mid {
+  left: 102px;
+  top: 40px;
+  width: 36px;
+  height: 68px;
+}
+
 .how-art .key {
   position: absolute;
-  left: 102px;
+  left: 108px;
   top: 52px;
   width: 28px;
   height: 28px;

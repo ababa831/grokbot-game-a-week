@@ -21,7 +21,7 @@ window.SWAP_PLACES_CONFIG = Object.freeze({
   playerPoseRecoverSeconds: 0.14,
   playerInvincibleAfterHitSeconds: 0.65,
   pointerMoveDeadzonePixels: 20,
-  clickMoveArriveDistancePixels: 10,
+  clickMoveArriveDistancePixels: 8,
 
   // —— Swap (core verb) ——
   swapStunSeconds: 0.28,
@@ -59,50 +59,49 @@ window.SWAP_PLACES_CONFIG = Object.freeze({
   // exit: {x,y} center
   // keysRequired: number to open exit
   rooms: Object.freeze([
-    // 開幕 — one enemy past a gap of spikes; swap to steal its spot + grab key
+    // 開幕 — spike "door" is a trap; walk around the top OR swap the far stone
     Object.freeze({
       labelJa: '開幕',
       keysRequired: 1,
       spawnX: 80,
       spawnY: 240,
-      exit: Object.freeze({ x: 640, y: 240 }),
+      exit: Object.freeze({ x: 650, y: 240 }),
       walls: Object.freeze([
-        Object.freeze({ x: 300, y: 40, w: 28, h: 160 }),
-        Object.freeze({ x: 300, y: 280, w: 28, h: 160 }),
+        Object.freeze({ x: 300, y: 72, w: 28, h: 112 }),
+        Object.freeze({ x: 300, y: 304, w: 28, h: 176 }),
       ]),
       spikes: Object.freeze([
-        Object.freeze({ x: 328, y: 200, w: 80, h: 80 }),
+        Object.freeze({ x: 292, y: 192, w: 44, h: 104 }),
       ]),
       holes: Object.freeze([]),
       enemies: Object.freeze([
-        Object.freeze({ x: 480, y: 240, speedMul: 0.55, sizeMul: 1 }),
+        Object.freeze({ x: 460, y: 360, speedMul: 0.5, sizeMul: 1 }),
       ]),
-      keys: Object.freeze([Object.freeze({ x: 560, y: 140 })]),
-      stones: Object.freeze([]),
+      keys: Object.freeze([Object.freeze({ x: 580, y: 120 })]),
+      stones: Object.freeze([Object.freeze({ x: 520, y: 240 })]),
     }),
-    // 尖り① — walk blocked by spikes; must swap onto stone then onto key side
+    // 尖り① — two walls; stone skips the first; long walk-around stays safe
     Object.freeze({
       labelJa: '尖り①',
       keysRequired: 1,
       spawnX: 70,
       spawnY: 400,
-      exit: Object.freeze({ x: 650, y: 80 }),
+      exit: Object.freeze({ x: 650, y: 70 }),
       walls: Object.freeze([
-        Object.freeze({ x: 200, y: 0, w: 32, h: 320 }),
-        Object.freeze({ x: 400, y: 160, w: 32, h: 320 }),
+        Object.freeze({ x: 220, y: 88, w: 28, h: 392 }),
+        Object.freeze({ x: 460, y: 0, w: 28, h: 392 }),
       ]),
       spikes: Object.freeze([
-        Object.freeze({ x: 232, y: 280, w: 168, h: 40 }),
-        Object.freeze({ x: 232, y: 160, w: 40, h: 120 }),
+        Object.freeze({ x: 212, y: 200, w: 44, h: 80 }),
       ]),
       holes: Object.freeze([]),
       enemies: Object.freeze([
-        Object.freeze({ x: 320, y: 100, speedMul: 0.9, sizeMul: 0.95 }),
+        Object.freeze({ x: 360, y: 160, speedMul: 0.85, sizeMul: 0.95 }),
       ]),
-      keys: Object.freeze([Object.freeze({ x: 520, y: 380 })]),
-      stones: Object.freeze([Object.freeze({ x: 120, y: 120 })]),
+      keys: Object.freeze([Object.freeze({ x: 600, y: 400 })]),
+      stones: Object.freeze([Object.freeze({ x: 340, y: 400 })]),
     }),
-    // 息継ぎ — generous space, slow chase, one key
+    // 息継ぎ — pillar detour; stone is the straight skip
     Object.freeze({
       labelJa: '息継ぎ',
       keysRequired: 1,
@@ -110,43 +109,39 @@ window.SWAP_PLACES_CONFIG = Object.freeze({
       spawnY: 240,
       exit: Object.freeze({ x: 640, y: 400 }),
       walls: Object.freeze([
-        Object.freeze({ x: 340, y: 160, w: 40, h: 160 }),
+        Object.freeze({ x: 330, y: 120, w: 36, h: 240 }),
       ]),
       spikes: Object.freeze([
-        Object.freeze({ x: 480, y: 40, w: 60, h: 60 }),
+        Object.freeze({ x: 500, y: 36, w: 32, h: 32 }),
       ]),
       holes: Object.freeze([]),
       enemies: Object.freeze([
-        Object.freeze({ x: 400, y: 300, speedMul: 0.5, sizeMul: 1.15 }),
+        Object.freeze({ x: 400, y: 360, speedMul: 0.45, sizeMul: 1.15 }),
       ]),
-      keys: Object.freeze([Object.freeze({ x: 560, y: 120 })]),
-      stones: Object.freeze([Object.freeze({ x: 200, y: 360 })]),
+      keys: Object.freeze([Object.freeze({ x: 600, y: 140 })]),
+      stones: Object.freeze([Object.freeze({ x: 500, y: 240 })]),
     }),
-    // 尖り② — holes force swap routes; chasing enemy
+    // 尖り② — hole river; stone jumps it, right edge is the long walk
     Object.freeze({
       labelJa: '尖り②',
       keysRequired: 1,
-      spawnX: 60,
-      spawnY: 60,
-      exit: Object.freeze({ x: 660, y: 420 }),
+      spawnX: 70,
+      spawnY: 70,
+      exit: Object.freeze({ x: 650, y: 420 }),
       walls: Object.freeze([]),
       spikes: Object.freeze([
-        Object.freeze({ x: 200, y: 200, w: 80, h: 80 }),
+        Object.freeze({ x: 580, y: 210, w: 28, h: 28 }),
       ]),
       holes: Object.freeze([
-        Object.freeze({ x: 120, y: 140, w: 100, h: 100 }),
-        Object.freeze({ x: 360, y: 60, w: 120, h: 90 }),
-        Object.freeze({ x: 280, y: 300, w: 140, h: 100 }),
-        Object.freeze({ x: 500, y: 220, w: 90, h: 120 }),
+        Object.freeze({ x: 0, y: 200, w: 560, h: 88 }),
       ]),
       enemies: Object.freeze([
-        Object.freeze({ x: 540, y: 100, speedMul: 1.05, sizeMul: 1 }),
-        Object.freeze({ x: 200, y: 400, speedMul: 0.85, sizeMul: 0.9 }),
+        Object.freeze({ x: 400, y: 380, speedMul: 0.95, sizeMul: 1 }),
       ]),
-      keys: Object.freeze([Object.freeze({ x: 640, y: 80 })]),
-      stones: Object.freeze([Object.freeze({ x: 80, y: 400 })]),
+      keys: Object.freeze([Object.freeze({ x: 220, y: 400 })]),
+      stones: Object.freeze([Object.freeze({ x: 80, y: 360 })]),
     }),
-    // 厚み — two keys, two enemies, walls form lanes
+    // 厚み — two keys on floor; stone skips wall A; no key-in-hole
     Object.freeze({
       labelJa: '厚み',
       keysRequired: 2,
@@ -154,30 +149,26 @@ window.SWAP_PLACES_CONFIG = Object.freeze({
       spawnY: 240,
       exit: Object.freeze({ x: 660, y: 240 }),
       walls: Object.freeze([
-        Object.freeze({ x: 180, y: 120, w: 24, h: 240 }),
-        Object.freeze({ x: 360, y: 40, w: 24, h: 160 }),
-        Object.freeze({ x: 360, y: 280, w: 24, h: 160 }),
-        Object.freeze({ x: 520, y: 120, w: 24, h: 240 }),
+        Object.freeze({ x: 200, y: 0, w: 24, h: 360 }),
+        Object.freeze({ x: 420, y: 120, w: 24, h: 360 }),
       ]),
       spikes: Object.freeze([
-        Object.freeze({ x: 204, y: 220, w: 156, h: 40 }),
-        Object.freeze({ x: 384, y: 220, w: 136, h: 40 }),
+        Object.freeze({ x: 192, y: 168, w: 40, h: 56 }),
       ]),
       holes: Object.freeze([
-        Object.freeze({ x: 260, y: 40, w: 70, h: 60 }),
-        Object.freeze({ x: 260, y: 380, w: 70, h: 60 }),
+        Object.freeze({ x: 300, y: 400, w: 64, h: 48 }),
       ]),
       enemies: Object.freeze([
-        Object.freeze({ x: 280, y: 160, speedMul: 0.95, sizeMul: 1 }),
-        Object.freeze({ x: 450, y: 320, speedMul: 1.1, sizeMul: 0.95 }),
+        Object.freeze({ x: 310, y: 300, speedMul: 0.85, sizeMul: 1 }),
+        Object.freeze({ x: 520, y: 180, speedMul: 0.95, sizeMul: 0.95 }),
       ]),
       keys: Object.freeze([
-        Object.freeze({ x: 280, y: 80 }),
-        Object.freeze({ x: 450, y: 400 }),
+        Object.freeze({ x: 310, y: 80 }),
+        Object.freeze({ x: 520, y: 400 }),
       ]),
-      stones: Object.freeze([Object.freeze({ x: 600, y: 80 })]),
+      stones: Object.freeze([Object.freeze({ x: 300, y: 240 })]),
     }),
-    // ピーク — crowded but ≤6 recognizables (2 enemies + 2 keys + 1 stone = 5)
+    // ピーク — stone jumps the wall; keys stay on solid floor
     Object.freeze({
       labelJa: 'ピーク',
       keysRequired: 2,
@@ -185,30 +176,24 @@ window.SWAP_PLACES_CONFIG = Object.freeze({
       spawnY: 430,
       exit: Object.freeze({ x: 660, y: 50 }),
       walls: Object.freeze([
-        Object.freeze({ x: 140, y: 100, w: 28, h: 280 }),
-        Object.freeze({ x: 300, y: 0, w: 28, h: 200 }),
-        Object.freeze({ x: 300, y: 280, w: 28, h: 200 }),
-        Object.freeze({ x: 460, y: 100, w: 28, h: 280 }),
+        Object.freeze({ x: 240, y: 80, w: 28, h: 400 }),
       ]),
       spikes: Object.freeze([
-        Object.freeze({ x: 168, y: 200, w: 132, h: 36 }),
-        Object.freeze({ x: 328, y: 220, w: 132, h: 36 }),
-        Object.freeze({ x: 488, y: 160, w: 100, h: 36 }),
+        Object.freeze({ x: 232, y: 200, w: 44, h: 64 }),
       ]),
       holes: Object.freeze([
-        Object.freeze({ x: 60, y: 160, w: 70, h: 70 }),
-        Object.freeze({ x: 560, y: 300, w: 80, h: 80 }),
-        Object.freeze({ x: 200, y: 40, w: 80, h: 50 }),
+        Object.freeze({ x: 80, y: 170, w: 140, h: 80 }),
+        Object.freeze({ x: 500, y: 280, w: 80, h: 70 }),
       ]),
       enemies: Object.freeze([
-        Object.freeze({ x: 230, y: 140, speedMul: 1.25, sizeMul: 0.9 }),
-        Object.freeze({ x: 400, y: 360, speedMul: 1.15, sizeMul: 1.05 }),
+        Object.freeze({ x: 400, y: 200, speedMul: 1.1, sizeMul: 0.9 }),
+        Object.freeze({ x: 560, y: 160, speedMul: 1.05, sizeMul: 1 }),
       ]),
       keys: Object.freeze([
-        Object.freeze({ x: 230, y: 360 }),
-        Object.freeze({ x: 560, y: 140 }),
+        Object.freeze({ x: 380, y: 70 }),
+        Object.freeze({ x: 620, y: 400 }),
       ]),
-      stones: Object.freeze([Object.freeze({ x: 80, y: 80 })]),
+      stones: Object.freeze([Object.freeze({ x: 360, y: 400 })]),
     }),
   ]),
 
