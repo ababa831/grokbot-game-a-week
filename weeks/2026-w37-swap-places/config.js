@@ -59,7 +59,7 @@ window.SWAP_PLACES_CONFIG = Object.freeze({
   // exit: {x,y} center
   // keysRequired: number to open exit
   rooms: Object.freeze([
-    // 開幕 — spike "door" is a trap; walk around the top OR swap the far stone
+    // 開幕 — floor spikes tax the straight line; top walk or stone swap skips them
     Object.freeze({
       labelJa: '開幕',
       keysRequired: 1,
@@ -67,11 +67,11 @@ window.SWAP_PLACES_CONFIG = Object.freeze({
       spawnY: 240,
       exit: Object.freeze({ x: 650, y: 240 }),
       walls: Object.freeze([
-        Object.freeze({ x: 300, y: 72, w: 28, h: 112 }),
+        Object.freeze({ x: 300, y: 0, w: 28, h: 176 }),
         Object.freeze({ x: 300, y: 304, w: 28, h: 176 }),
       ]),
       spikes: Object.freeze([
-        Object.freeze({ x: 292, y: 192, w: 44, h: 104 }),
+        Object.freeze({ x: 196, y: 196, w: 92, h: 88 }),
       ]),
       holes: Object.freeze([]),
       enemies: Object.freeze([
@@ -80,7 +80,7 @@ window.SWAP_PLACES_CONFIG = Object.freeze({
       keys: Object.freeze([Object.freeze({ x: 580, y: 120 })]),
       stones: Object.freeze([Object.freeze({ x: 520, y: 240 })]),
     }),
-    // 尖り① — two walls; stone skips the first; long walk-around stays safe
+    // 尖り① — two walls; stone skips the first; spikes tax the middle climb
     Object.freeze({
       labelJa: '尖り①',
       keysRequired: 1,
@@ -92,7 +92,7 @@ window.SWAP_PLACES_CONFIG = Object.freeze({
         Object.freeze({ x: 460, y: 0, w: 28, h: 392 }),
       ]),
       spikes: Object.freeze([
-        Object.freeze({ x: 212, y: 200, w: 44, h: 80 }),
+        Object.freeze({ x: 288, y: 288, w: 124, h: 40 }),
       ]),
       holes: Object.freeze([]),
       enemies: Object.freeze([
@@ -101,7 +101,7 @@ window.SWAP_PLACES_CONFIG = Object.freeze({
       keys: Object.freeze([Object.freeze({ x: 600, y: 400 })]),
       stones: Object.freeze([Object.freeze({ x: 340, y: 400 })]),
     }),
-    // 息継ぎ — pillar detour; stone is the straight skip
+    // 息継ぎ — pillar detour; spikes tax the short lane; stone skips both
     Object.freeze({
       labelJa: '息継ぎ',
       keysRequired: 1,
@@ -112,7 +112,7 @@ window.SWAP_PLACES_CONFIG = Object.freeze({
         Object.freeze({ x: 330, y: 120, w: 36, h: 240 }),
       ]),
       spikes: Object.freeze([
-        Object.freeze({ x: 500, y: 36, w: 32, h: 32 }),
+        Object.freeze({ x: 384, y: 200, w: 100, h: 40 }),
       ]),
       holes: Object.freeze([]),
       enemies: Object.freeze([
@@ -121,7 +121,7 @@ window.SWAP_PLACES_CONFIG = Object.freeze({
       keys: Object.freeze([Object.freeze({ x: 600, y: 140 })]),
       stones: Object.freeze([Object.freeze({ x: 500, y: 240 })]),
     }),
-    // 尖り② — hole river; stone jumps it, right edge is the long walk
+    // 尖り② — hole river; stone jumps it; right walk pays a spike tax
     Object.freeze({
       labelJa: '尖り②',
       keysRequired: 1,
@@ -130,7 +130,7 @@ window.SWAP_PLACES_CONFIG = Object.freeze({
       exit: Object.freeze({ x: 650, y: 420 }),
       walls: Object.freeze([]),
       spikes: Object.freeze([
-        Object.freeze({ x: 580, y: 210, w: 28, h: 28 }),
+        Object.freeze({ x: 576, y: 208, w: 88, h: 72 }),
       ]),
       holes: Object.freeze([
         Object.freeze({ x: 0, y: 200, w: 560, h: 88 }),
@@ -141,7 +141,7 @@ window.SWAP_PLACES_CONFIG = Object.freeze({
       keys: Object.freeze([Object.freeze({ x: 220, y: 400 })]),
       stones: Object.freeze([Object.freeze({ x: 80, y: 360 })]),
     }),
-    // 厚み — two keys on floor; stone skips wall A; no key-in-hole
+    // 厚み — floor spikes on the long walk and middle lane; stone skips wall A
     Object.freeze({
       labelJa: '厚み',
       keysRequired: 2,
@@ -153,7 +153,8 @@ window.SWAP_PLACES_CONFIG = Object.freeze({
         Object.freeze({ x: 420, y: 120, w: 24, h: 360 }),
       ]),
       spikes: Object.freeze([
-        Object.freeze({ x: 192, y: 168, w: 40, h: 56 }),
+        Object.freeze({ x: 160, y: 392, w: 120, h: 36 }),
+        Object.freeze({ x: 248, y: 168, w: 140, h: 32 }),
       ]),
       holes: Object.freeze([
         Object.freeze({ x: 300, y: 400, w: 64, h: 48 }),
@@ -168,7 +169,7 @@ window.SWAP_PLACES_CONFIG = Object.freeze({
       ]),
       stones: Object.freeze([Object.freeze({ x: 300, y: 240 })]),
     }),
-    // ピーク — stone jumps the wall; keys stay on solid floor
+    // ピーク — floor spikes tax the top detour and the right lane
     Object.freeze({
       labelJa: 'ピーク',
       keysRequired: 2,
@@ -179,7 +180,8 @@ window.SWAP_PLACES_CONFIG = Object.freeze({
         Object.freeze({ x: 240, y: 80, w: 28, h: 400 }),
       ]),
       spikes: Object.freeze([
-        Object.freeze({ x: 232, y: 200, w: 44, h: 64 }),
+        Object.freeze({ x: 196, y: 20, w: 140, h: 32 }),
+        Object.freeze({ x: 400, y: 300, w: 80, h: 36 }),
       ]),
       holes: Object.freeze([
         Object.freeze({ x: 80, y: 170, w: 140, h: 80 }),

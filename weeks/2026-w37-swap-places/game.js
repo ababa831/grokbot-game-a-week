@@ -1309,10 +1309,10 @@
 
     drawArena();
     drawHoles();
-    drawSpikes();
     for (const w of state.walls) {
       drawRectBlock(w, CFG.colorWall, CFG.colorWallEdge, CFG.colorWallTop);
     }
+    drawSpikes();
     drawExit();
     for (const k of state.keys) drawKey(k);
     for (const s of state.stones) drawStone(s);
