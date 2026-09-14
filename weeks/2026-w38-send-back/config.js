@@ -27,12 +27,13 @@ window.SEND_BACK_CONFIG = Object.freeze({
   playerSafePocketHalfWidthPixels: 90,
 
   // —— Parry zone (yellow band) ——
-  parryZoneInnerRadiusPixels: 42,
-  parryZoneOuterRadiusPixels: 108,
-  parryZoneHalfAngleRadians: 1.15, // ~66° cone upward
+  parryZoneInnerRadiusPixels: 36,
+  parryZoneOuterRadiusPixels: 130,
+  parryZoneHalfAngleRadians: 1.25, // ~72° cone upward
   parryZoneFacingRadians: -Math.PI / 2, // up
-  parryWhiffCooldownSeconds: 0.12,
-  perfectWindowFraction: 0.38, // center band of radial thickness = perfect
+  parryWhiffCooldownSeconds: 0.1,
+  reflectInputBufferSeconds: 0.1,
+  perfectWindowFraction: 0.45, // center band of radial thickness = perfect
   perfectSpeedMul: 1.55,
   perfectDamageBonus: 1,
   normalReflectSpeedMul: 1.15,
@@ -65,11 +66,11 @@ window.SEND_BACK_CONFIG = Object.freeze({
         Object.freeze({ x: 360, y: 72, sizeMul: 1.1, hp: 2 }),
       ]),
       schedule: Object.freeze([
-        Object.freeze({ atSeconds: 0.7, enemyIndex: 0, speedPixelsPerSecond: 145, telegraphSeconds: 0.55, aimJitterPixels: 0 }),
-        Object.freeze({ atSeconds: 2.4, enemyIndex: 0, speedPixelsPerSecond: 150, telegraphSeconds: 0.5, aimJitterPixels: 8 }),
-        Object.freeze({ atSeconds: 4.2, enemyIndex: 0, speedPixelsPerSecond: 155, telegraphSeconds: 0.48, aimJitterPixels: 12 }),
-        Object.freeze({ atSeconds: 6.0, enemyIndex: 0, speedPixelsPerSecond: 160, telegraphSeconds: 0.45, aimJitterPixels: 0 }),
-        Object.freeze({ atSeconds: 7.8, enemyIndex: 0, speedPixelsPerSecond: 165, telegraphSeconds: 0.42, aimJitterPixels: 10 }),
+        Object.freeze({ atSeconds: 0.7, enemyIndex: 0, speedPixelsPerSecond: 120, telegraphSeconds: 0.65, aimJitterPixels: 0 }),
+        Object.freeze({ atSeconds: 2.6, enemyIndex: 0, speedPixelsPerSecond: 125, telegraphSeconds: 0.6, aimJitterPixels: 8 }),
+        Object.freeze({ atSeconds: 4.6, enemyIndex: 0, speedPixelsPerSecond: 130, telegraphSeconds: 0.55, aimJitterPixels: 12 }),
+        Object.freeze({ atSeconds: 6.6, enemyIndex: 0, speedPixelsPerSecond: 135, telegraphSeconds: 0.5, aimJitterPixels: 0 }),
+        Object.freeze({ atSeconds: 8.6, enemyIndex: 0, speedPixelsPerSecond: 140, telegraphSeconds: 0.48, aimJitterPixels: 10 }),
       ]),
     }),
     // 尖り① — faster approach, tighter feel

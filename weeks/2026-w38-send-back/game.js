@@ -28,6 +28,7 @@
   let reflectPressedThisFrame = false;
   let anyKeyThisFrame = false;
   let pointerClickThisFrame = null;
+  let reflectBufferSeconds = 0;
 
   const REFLECT_CODES = new Set(['Space']);
   const LEFT_CODES = new Set(['ArrowLeft', 'KeyA']);
@@ -209,6 +210,7 @@
     state.whiffCooldown = 0;
     state.perfectFlash = 0;
     state.zoneHot = false;
+    reflectBufferSeconds = 0;
     clearPopup.classList.remove('show');
     clearPopup.textContent = '';
   }
@@ -519,34 +521,36 @@
     return { d, radialT, perfect };
   }
 
-  function tryReflect() {
-    if (state.whiffCooldown > 0) return;
+  function doWhiff() {
+    state.whiffCooldown = CFG.parryWhiffCooldownSeconds;
+    AudioSys.whiff();
     const p = state.player;
     if (!p) return;
+    p.poseSX = 0.85;
+    p.poseSY = 1.15;
+    p.poseTimer = CFG.playerPoseRecoverSeconds * 0.6;
+  }
 
+  function findReflectableShot() {
+    const p = state.player;
+    if (!p) return null;
     let best = null;
     let bestScore = Infinity;
     for (const shot of state.shots) {
       if (!shot.alive || shot.reflected) continue;
       const info = pointInParryZone(p.x, p.y, shot.x, shot.y);
       if (!info) continue;
-      // prefer closer to perfect center
       const score = Math.abs(info.radialT - 0.5);
       if (score < bestScore) {
         bestScore = score;
         best = { shot, info };
       }
     }
+    return best;
+  }
 
-    if (!best) {
-      state.whiffCooldown = CFG.parryWhiffCooldownSeconds;
-      AudioSys.whiff();
-      p.poseSX = 0.85;
-      p.poseSY = 1.15;
-      p.poseTimer = CFG.playerPoseRecoverSeconds * 0.6;
-      return;
-    }
-
+  function performReflect(best) {
+    const p = state.player;
     const { shot, info } = best;
     shot.alive = false;
     shot.reflected = true;
@@ -554,7 +558,6 @@
     const perfect = info.perfect;
     const speedMul = perfect ? CFG.perfectSpeedMul : CFG.normalReflectSpeedMul;
     const baseSpeed = shot.speed * speedMul;
-    // Fly back toward owner enemy (or upward if gone)
     let tx = shot.originX;
     let ty = shot.originY;
     const owner = state.enemies[shot.ownerIndex];
@@ -603,6 +606,17 @@
     spawnHitMark(shot.x, shot.y);
 
     checkWaveClear();
+  }
+
+  function tryReflect() {
+    if (state.whiffCooldown > 0) return false;
+    const best = findReflectableShot();
+    if (!best) {
+      doWhiff();
+      return false;
+    }
+    performReflect(best);
+    return true;
   }
 
   function damageEnemy(enemy, dmg, hx, hy) {
@@ -885,14 +899,30 @@
     if (state.whiffCooldown > 0) state.whiffCooldown -= dt;
     if (state.perfectFlash > 0) state.perfectFlash -= dt;
 
+    if (reflectPressedThisFrame) {
+      reflectBufferSeconds = CFG.reflectInputBufferSeconds;
+    }
+
     updatePlayer(dt);
     queuePendingFromSchedule(dt);
     updatePending(dt);
     updateShots(dt);
     updateEnemies(dt);
 
-    if (reflectPressedThisFrame) {
-      tryReflect();
+    // Buffer: wait for a shot in the yellow band; whiff only if buffer expires empty.
+    if (reflectBufferSeconds > 0) {
+      if (state.whiffCooldown <= 0) {
+        const best = findReflectableShot();
+        if (best) {
+          performReflect(best);
+          reflectBufferSeconds = 0;
+        } else {
+          reflectBufferSeconds -= dt;
+          if (reflectBufferSeconds <= 0) doWhiff();
+        }
+      } else {
+        reflectBufferSeconds -= dt;
+      }
     }
   }
 
@@ -1311,20 +1341,20 @@
     if (frameDt > CFG.maxFrameDeltaSeconds) frameDt = CFG.maxFrameDeltaSeconds;
     acc += frameDt;
     const step = CFG.fixedTimestepSeconds;
-    let stepped = false;
+    let consumedInput = false;
     while (acc >= step) {
       tick(step);
       acc -= step;
-      stepped = true;
       // one-shot inputs apply to the first sim step only
       reflectPressedThisFrame = false;
       anyKeyThisFrame = false;
       pointerClickThisFrame = null;
+      consumedInput = true;
     }
-    if (!stepped) {
-      reflectPressedThisFrame = false;
-      anyKeyThisFrame = false;
-      pointerClickThisFrame = null;
+    // Do NOT clear inputs on frames that did not simulate — otherwise
+    // clicks between ticks are dropped before tryReflect can see them.
+    if (!consumedInput) {
+      // keep latched inputs for the next physics step
     }
     render();
     requestAnimationFrame(frame);
