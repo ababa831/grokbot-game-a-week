@@ -924,6 +924,11 @@
         reflectBufferSeconds -= dt;
       }
     }
+
+    // Dev/autoparry: hold reflect buffer whenever a shot is in the yellow band.
+    if (typeof location !== 'undefined' && location.hash === '#autoparry' && state.zoneHot) {
+      reflectBufferSeconds = Math.max(reflectBufferSeconds, CFG.reflectInputBufferSeconds);
+    }
   }
 
   function tick(dt) {
@@ -988,6 +993,12 @@
       updatePlaying(dt);
       updateEffects(dt, false);
     }
+
+    // Lightweight probes for automated playtests
+    window.__SB_MODE = state.mode;
+    window.__SB_ZONE_HOT = state.zoneHot;
+    window.__SB_SHOTS = state.shots.length;
+    window.__SB_RETURNS = state.returns;
   }
 
   // —— Draw ——
@@ -1043,12 +1054,12 @@
     ctx.arc(0, 0, outer, -half - Math.PI / 2, half - Math.PI / 2);
     ctx.arc(0, 0, inner, half - Math.PI / 2, -half - Math.PI / 2, true);
     ctx.closePath();
-    ctx.fillStyle = hot || flash ? 'rgba(255, 224, 102, 0.42)' : 'rgba(255, 204, 51, 0.28)';
+    ctx.fillStyle = hot || flash ? 'rgba(255, 224, 102, 0.55)' : 'rgba(255, 204, 51, 0.28)';
     ctx.fill();
     ctx.lineWidth = 3;
     ctx.strokeStyle = CFG.colorParryZoneEdge;
     ctx.stroke();
-    ctx.lineWidth = 2;
+    ctx.lineWidth = hot ? 4 : 2;
     ctx.strokeStyle = hot || flash ? CFG.colorParryZoneActive : CFG.colorParryZone;
     ctx.stroke();
 
@@ -1067,6 +1078,19 @@
     ctx.fill();
 
     ctx.restore();
+
+    if (hot) {
+      ctx.save();
+      ctx.font = '900 22px Dela Gothic One, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = '#0a0a0a';
+      ctx.fillStyle = CFG.colorParryZoneActive;
+      const labelY = p.y - CFG.parryZoneOuterRadiusPixels - 8;
+      ctx.strokeText('返せ！', p.x, labelY);
+      ctx.fillText('返せ！', p.x, labelY);
+      ctx.restore();
+    }
   }
 
   function drawPlayer() {
