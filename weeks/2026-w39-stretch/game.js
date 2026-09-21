@@ -771,6 +771,7 @@
 
   function stretchColor() {
     const s = state.stretch;
+    if (!s) return CFG.colorStretchBody;
     if (s.danger) return CFG.colorStretchDanger;
     if (s.warning) return CFG.colorStretchWarn;
     return CFG.colorStretchBody;
@@ -779,6 +780,7 @@
   function drawStretch() {
     const p = state.player;
     const s = state.stretch;
+    if (!p || !s) return;
     if (!s.active && s.snapbackT <= 0) return;
 
     let len = s.length;
@@ -903,7 +905,8 @@
   }
 
   function drawAimHint() {
-    if (state.mode !== 'play' || state.stretch.active) return;
+    const s = state.stretch;
+    if (state.mode !== 'play' || !s || s.active) return;
     const p = state.player;
     if (!p) return;
     const n = norm(pointerAim.x - p.x, pointerAim.y - p.y);
@@ -1039,13 +1042,15 @@
       state.shakeAngle += 0.7;
     }
     drawArena();
-    drawAimHint();
-    drawTargets();
-    drawEnemies();
-    drawStretch();
-    drawPlayer();
-    drawParticles();
-    drawTensionMeter();
+    if (state.mode === 'play' || state.mode === 'dead') {
+      drawAimHint();
+      drawTargets();
+      drawEnemies();
+      drawStretch();
+      drawPlayer();
+      drawParticles();
+      drawTensionMeter();
+    }
     ctx.restore();
   }
 
@@ -1169,35 +1174,39 @@
   let acc = 0;
 
   function frame(now) {
-    const raw = Math.min(CFG.maxFrameDeltaSeconds, (now - last) / 1000);
-    last = now;
-    acc += raw;
+    try {
+      const raw = Math.min(CFG.maxFrameDeltaSeconds, (now - last) / 1000);
+      last = now;
+      acc += raw;
 
-    // overlay mash
-    if (
-      (state.mode === 'title' || state.mode === 'howto' || state.mode === 'dead') &&
-      anyKeyThisFrame
-    ) {
-      tryStartFromOverlay();
+      // overlay mash
+      if (
+        (state.mode === 'title' || state.mode === 'howto' || state.mode === 'dead') &&
+        anyKeyThisFrame
+      ) {
+        tryStartFromOverlay();
+      }
+
+      const step = CFG.fixedTimestepSeconds;
+      while (acc >= step) {
+        fixedUpdate(step);
+        acc -= step;
+      }
+
+      draw();
+    } catch (err) {
+      console.error('[伸ばせ]', err);
+    } finally {
+      anyKeyThisFrame = false;
+      stretchReleasedThisFrame = false;
+      requestAnimationFrame(frame);
     }
-
-    const step = CFG.fixedTimestepSeconds;
-    while (acc >= step) {
-      fixedUpdate(step);
-      acc -= step;
-    }
-
-    draw();
-
-    // clear one-frame flags
-    anyKeyThisFrame = false;
-    stretchReleasedThisFrame = false;
-
-    requestAnimationFrame(frame);
   }
 
-  // boot
+  // boot — keep entities allocated so draw never sees null refs
   bestGrabsEl.textContent = String(state.bestGrabs);
+  state.player = makePlayer();
+  state.stretch = makeStretch();
   showTitle();
   updateHud();
   requestAnimationFrame(frame);
