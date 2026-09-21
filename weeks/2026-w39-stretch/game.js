@@ -232,7 +232,7 @@
       vx: 0,
       vy: 0,
       hp: CFG.playerMaxHitPoints,
-      invuln: 0,
+      invuln: CFG.playerSpawnInvincibleSeconds,
       hurtFlash: 0,
       scaleX: 1,
       scaleY: 1,
@@ -252,6 +252,7 @@
       snapbackFrom: 0,
       warning: false,
       danger: false,
+      needRelease: false,
     };
   }
 
@@ -265,14 +266,22 @@
     state.grabs = 0;
     state.hitstop = 0;
     state.shake = 0;
-    state.targetSpawnTimer = 0.4;
-    state.enemySpawnTimer = 0.8;
+    state.targetSpawnTimer = 0.35;
+    state.enemySpawnTimer = 2.2;
     state.grabCooldown = 0;
     state.deathTimer = 0;
     state.time = 0;
+    // easy opener: one star above the player
+    state.targets.push({
+      x: CFG.arenaWidthPixels * 0.5,
+      y: CFG.arenaHeightPixels * 0.22,
+      r: CFG.targetRadiusPixels,
+      life: CFG.targetLifetimeSeconds,
+      alive: true,
+      phase: 0,
+    });
+    spawnTarget();
     for (let i = 0; i < CFG.enemyInitialCount; i++) spawnEnemy();
-    spawnTarget();
-    spawnTarget();
     updateHud();
   }
 
@@ -486,6 +495,7 @@
     s.active = false;
     s.length = CFG.stretchMinLengthPixels;
     s.snapbackT = 0;
+    s.needRelease = true;
     AudioSys.stopStretchHum();
     AudioSys.snap();
     applyHitstop(CFG.hitstopOnOverstretchSnapSeconds);
@@ -552,7 +562,9 @@
   function updateStretch(dt) {
     const p = state.player;
     const s = state.stretch;
-    const holding = stretchHeld || keys.Space;
+    const rawHolding = stretchHeld || !!keys.Space;
+    if (!rawHolding) s.needRelease = false;
+    const holding = rawHolding && !s.needRelease;
 
     // aim angle always follows pointer
     const aim = norm(pointerAim.x - p.x, pointerAim.y - p.y);
@@ -618,7 +630,8 @@
   function stretchBodyHitsEnemy(e) {
     const p = state.player;
     const s = state.stretch;
-    if (!s.active || s.length < CFG.stretchMinLengthPixels + 4) return false;
+    // short reach: tip risk only; long stretch = elongated hurtbox
+    if (!s.active || s.length < CFG.playerCoreRadiusPixels * 3) return false;
     // approximate capsule: distance from enemy center to segment
     const ax = p.x;
     const ay = p.y;
@@ -628,10 +641,10 @@
     const aby = by - ay;
     const len2 = abx * abx + aby * aby || 1;
     let t = ((e.x - ax) * abx + (e.y - ay) * aby) / len2;
-    t = clamp(t, 0, 1);
+    t = clamp(t, 0.15, 1); // ignore near-core segment (core has its own check)
     const cx = ax + abx * t;
     const cy = ay + aby * t;
-    const hitR = CFG.stretchBodyHalfWidthPixels + e.r * 0.85;
+    const hitR = CFG.stretchBodyHalfWidthPixels + e.r * 0.75;
     return dist(cx, cy, e.x, e.y) <= hitR;
   }
 
@@ -1144,12 +1157,15 @@
   function beginPlay() {
     AudioSys.unlock();
     AudioSys.stopStretchHum();
-    resetRun();
-    state.mode = 'play';
-    overlay.classList.add('hidden');
+    // clear sticky input from mash / overlay clicks
+    for (const k of Object.keys(keys)) keys[k] = false;
     stretchHeld = false;
     stretchReleasedThisFrame = false;
     pointerDown = false;
+    resetRun();
+    state.stretch.needRelease = true; // ignore held mash until a fresh press
+    state.mode = 'play';
+    overlay.classList.add('hidden');
   }
 
   function tryStartFromOverlay() {
