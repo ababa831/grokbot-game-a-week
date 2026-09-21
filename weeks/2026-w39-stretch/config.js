@@ -14,7 +14,7 @@ window.STRETCH_CONFIG = Object.freeze({
   playerMaxHitPoints: 3,
   playerHurtFlashDurationSeconds: 0.18,
   playerInvincibleAfterHitSeconds: 0.85,
-  playerSpawnInvincibleSeconds: 1.4,
+  playerSpawnInvincibleSeconds: 2.2,
   playerPoseRecoverSeconds: 0.16,
   playerIdleBobHz: 2.2,
   playerIdleBobPixels: 2,

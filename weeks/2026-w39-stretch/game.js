@@ -267,7 +267,7 @@
     state.hitstop = 0;
     state.shake = 0;
     state.targetSpawnTimer = 0.35;
-    state.enemySpawnTimer = 2.2;
+    state.enemySpawnTimer = 3.5;
     state.grabCooldown = 0;
     state.deathTimer = 0;
     state.time = 0;
@@ -1225,5 +1225,6 @@
   state.stretch = makeStretch();
   showTitle();
   updateHud();
+  window.__STRETCH_DEBUG__ = state;
   requestAnimationFrame(frame);
 })();
