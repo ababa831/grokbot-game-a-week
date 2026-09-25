@@ -26,14 +26,12 @@ window.SEND_BACK_CONFIG = Object.freeze({
   playerNudgeMaxOffsetPixels: 72,
   playerSafePocketHalfWidthPixels: 90,
 
-  // —— Fan. Wings return the shot. The bright heart turns it into an ult. ——
-  parryZoneInnerRadiusPixels: 46,
-  parryZoneOuterRadiusPixels: 132,
-  parryZoneHalfAngleRadians: 1.08,
+  // —— Original fan. The paler center arc is the ult band. ——
+  parryZoneInnerRadiusPixels: 36,
+  parryZoneOuterRadiusPixels: 130,
+  parryZoneHalfAngleRadians: 1.25,
   parryZoneFacingRadians: -Math.PI / 2,
-  parryUltHalfAngleRadians: 0.34,
-  parryUltInnerRadiusPixels: 68,
-  parryUltOuterRadiusPixels: 116,
+  perfectWindowFraction: 0.45,
   ultLatchSeconds: 0.1,
   parryWhiffCooldownSeconds: 0.28,
   parryWhiffMaxLockSeconds: 2.4,

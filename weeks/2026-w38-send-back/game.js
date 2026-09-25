@@ -329,9 +329,9 @@
       art: 'you',
     },
     {
-      kicker: '扇の芯でウルト',
-      title: '芯がクリティカル',
-      body: '黄色い扇の白い芯に乗せた瞬間に返すと、弾がウルトになる。',
+      kicker: '薄い弧でウルト',
+      title: '弧がクリティカル',
+      body: '扇の、黄色が薄くなっている弧で返すと、弾がウルトになる。',
       art: 'band',
     },
     {
@@ -347,7 +347,7 @@
       return `<div class="how-art"><div class="enemy"></div><div class="player"></div><div class="you-tag">あなた</div></div>`;
     }
     if (kind === 'band') {
-      return `<div class="how-art"><div class="enemy"></div><div class="mid-label">白い芯＝ウルト</div><div class="fan"></div><div class="fan-heart"></div><div class="shot"></div><div class="player"></div></div>`;
+      return `<div class="how-art"><div class="enemy"></div><div class="mid-label">薄い弧＝ウルト</div><div class="fan"></div><div class="fan-heart"></div><div class="shot"></div><div class="player"></div></div>`;
     }
     return `<div class="how-art"><div class="enemy"></div><div class="arrow-up"></div><div class="ult-shot"></div><div class="fan"></div><div class="fan-heart"></div><div class="player"></div><div class="perfect-tag">ウルト</div></div>`;
   }
@@ -514,6 +514,15 @@
     }
   }
 
+  function ultBandRadii() {
+    const inner = CFG.parryZoneInnerRadiusPixels;
+    const outer = CFG.parryZoneOuterRadiusPixels;
+    const mid = (inner + outer) * 0.5;
+    // Same radial width as the pale arc on the original fan.
+    const halfWidth = ((outer - inner) * 0.5 * CFG.perfectWindowFraction) / 2;
+    return { inner: mid - halfWidth, outer: mid + halfWidth };
+  }
+
   function wrapAngle(rad) {
     let a = rad;
     while (a > Math.PI) a -= Math.PI * 2;
@@ -537,11 +546,11 @@
     const s = fanSample(px, py, shotX, shotY);
     if (s.d < CFG.parryZoneInnerRadiusPixels || s.d > CFG.parryZoneOuterRadiusPixels) return null;
     if (Math.abs(s.diff) > CFG.parryZoneHalfAngleRadians) return null;
-    const ult =
-      Math.abs(s.diff) <= CFG.parryUltHalfAngleRadians &&
-      s.d >= CFG.parryUltInnerRadiusPixels &&
-      s.d <= CFG.parryUltOuterRadiusPixels;
-    return { d: s.d, ang: s.diff, radialT: s.d, ult };
+    const band = ultBandRadii();
+    const ult = s.d >= band.inner && s.d <= band.outer;
+    const thickness = CFG.parryZoneOuterRadiusPixels - CFG.parryZoneInnerRadiusPixels;
+    const radialT = (s.d - CFG.parryZoneInnerRadiusPixels) / Math.max(1, thickness);
+    return { d: s.d, ang: s.diff, radialT, ult };
   }
 
   function doWhiff() {
@@ -1148,46 +1157,45 @@
     ctx.stroke();
   }
 
-  function fillFan(inner, outer, half, face) {
-    ctx.beginPath();
-    ctx.arc(0, 0, outer, face - half, face + half);
-    ctx.arc(0, 0, inner, face + half, face - half, true);
-    ctx.closePath();
-  }
-
   function paintFan(px, py, hot, ultHot, flash) {
-    const face = CFG.parryZoneFacingRadians;
+    const inner = CFG.parryZoneInnerRadiusPixels;
+    const outer = CFG.parryZoneOuterRadiusPixels;
+    const half = CFG.parryZoneHalfAngleRadians;
+    const band = ultBandRadii();
     ctx.save();
     ctx.translate(px, py);
-    fillFan(CFG.parryZoneInnerRadiusPixels, CFG.parryZoneOuterRadiusPixels, CFG.parryZoneHalfAngleRadians, face);
-    ctx.fillStyle = hot && !ultHot ? CFG.colorParryZoneActive : CFG.colorParryZone;
+    ctx.rotate(CFG.parryZoneFacingRadians + Math.PI / 2);
+
+    ctx.beginPath();
+    ctx.arc(0, 0, outer, -half - Math.PI / 2, half - Math.PI / 2);
+    ctx.arc(0, 0, inner, half - Math.PI / 2, -half - Math.PI / 2, true);
+    ctx.closePath();
+    ctx.fillStyle = hot || flash ? 'rgba(255, 224, 102, 0.55)' : 'rgba(255, 204, 51, 0.28)';
     ctx.fill();
-    ctx.lineWidth = hot ? 4 : 3;
+    ctx.lineWidth = 3;
     ctx.strokeStyle = CFG.colorParryZoneEdge;
     ctx.stroke();
+    ctx.lineWidth = hot ? 4 : 2;
+    ctx.strokeStyle = hot || flash ? CFG.colorParryZoneActive : CFG.colorParryZone;
+    ctx.stroke();
 
-    fillFan(CFG.parryUltInnerRadiusPixels, CFG.parryUltOuterRadiusPixels, CFG.parryUltHalfAngleRadians, face);
-    ctx.fillStyle = ultHot || flash ? '#ffffff' : CFG.colorReflectShotCore;
+    ctx.beginPath();
+    ctx.arc(0, 0, band.outer, -half - Math.PI / 2, half - Math.PI / 2);
+    ctx.arc(0, 0, band.inner, half - Math.PI / 2, -half - Math.PI / 2, true);
+    ctx.closePath();
+    ctx.fillStyle = ultHot || flash ? 'rgba(255, 248, 231, 0.35)' : 'rgba(255, 248, 231, 0.12)';
     ctx.fill();
-    ctx.lineWidth = ultHot ? 4 : 3;
-    ctx.strokeStyle = '#0a0a0a';
-    ctx.stroke();
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = CFG.colorParryZone;
-    ctx.stroke();
     ctx.restore();
 
     if (hot) {
       ctx.save();
-      ctx.font = '900 26px Dela Gothic One, sans-serif';
+      ctx.font = '900 22px Dela Gothic One, sans-serif';
       ctx.textAlign = 'center';
-      ctx.lineWidth = 5;
+      ctx.lineWidth = 4;
       ctx.strokeStyle = '#0a0a0a';
-      const label = ultHot ? 'ウルト！' : '返せ！';
-      const labelY = py - CFG.parryZoneOuterRadiusPixels - 8;
-      ctx.strokeText(label, px, labelY);
-      ctx.fillStyle = ultHot ? CFG.colorPerfect : CFG.colorParryZoneActive;
-      ctx.fillText(label, px, labelY);
+      ctx.fillStyle = CFG.colorParryZoneActive;
+      ctx.strokeText('返せ！', px, py - outer - 8);
+      ctx.fillText('返せ！', px, py - outer - 8);
       ctx.restore();
     }
   }
