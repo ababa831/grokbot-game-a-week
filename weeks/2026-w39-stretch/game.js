@@ -227,8 +227,8 @@
 
   function makePlayer() {
     return {
-      x: CFG.arenaWidthPixels * 0.5,
-      y: CFG.arenaHeightPixels * 0.55,
+      x: CFG.arenaWidthPixels * CFG.playerSpawnXRatio,
+      y: CFG.arenaHeightPixels * CFG.playerSpawnYRatio,
       vx: 0,
       vy: 0,
       hp: CFG.playerMaxHitPoints,
@@ -253,6 +253,7 @@
       warning: false,
       danger: false,
       needRelease: false,
+      latched: false,
     };
   }
 
@@ -271,15 +272,7 @@
     state.grabCooldown = 0;
     state.deathTimer = 0;
     state.time = 0;
-    // easy opener: one star above the player
-    state.targets.push({
-      x: CFG.arenaWidthPixels * 0.5,
-      y: CFG.arenaHeightPixels * 0.22,
-      r: CFG.targetRadiusPixels,
-      life: CFG.targetLifetimeSeconds,
-      alive: true,
-      phase: 0,
-    });
+    spawnOpenerTarget();
     spawnTarget();
     for (let i = 0; i < CFG.enemyInitialCount; i++) spawnEnemy();
     updateHud();
@@ -303,30 +296,35 @@
   }
 
   // —— Spawns ——
+  function pointOnArenaEdge(side) {
+    const pad = CFG.enemySpawnEdgePaddingPixels;
+    if (side === 0) {
+      return { x: randRange(pad, CFG.arenaWidthPixels - pad), y: pad };
+    }
+    if (side === 1) {
+      return { x: randRange(pad, CFG.arenaWidthPixels - pad), y: CFG.arenaHeightPixels - pad };
+    }
+    if (side === 2) {
+      return { x: pad, y: randRange(pad, CFG.arenaHeightPixels - pad) };
+    }
+    return { x: CFG.arenaWidthPixels - pad, y: randRange(pad, CFG.arenaHeightPixels - pad) };
+  }
+
   function spawnEnemy() {
     if (state.enemies.length >= CFG.enemyMaxAlive) return;
     const variant = CFG.enemyVariants[Math.floor(Math.random() * CFG.enemyVariants.length)];
-    const pad = CFG.enemySpawnEdgePaddingPixels;
-    const side = Math.floor(Math.random() * 4);
-    let x;
-    let y;
-    if (side === 0) {
-      x = randRange(pad, CFG.arenaWidthPixels - pad);
-      y = pad;
-    } else if (side === 1) {
-      x = randRange(pad, CFG.arenaWidthPixels - pad);
-      y = CFG.arenaHeightPixels - pad;
-    } else if (side === 2) {
-      x = pad;
-      y = randRange(pad, CFG.arenaHeightPixels - pad);
-    } else {
-      x = CFG.arenaWidthPixels - pad;
-      y = randRange(pad, CFG.arenaHeightPixels - pad);
-    }
-    // keep away from player core on spawn
-    if (state.player && dist(x, y, state.player.x, state.player.y) < 120) {
-      x = CFG.arenaWidthPixels - x;
-      y = CFG.arenaHeightPixels - y;
+    const p = state.player;
+    let x = CFG.arenaWidthPixels * 0.5;
+    let y = CFG.enemySpawnEdgePaddingPixels;
+    for (let tries = 0; tries < 12; tries++) {
+      let side = Math.floor(Math.random() * 4);
+      if (CFG.enemyInitialSpawnHorizontal && state.enemies.length === 0 && state.grabs === 0) {
+        side = Math.random() < 0.5 ? 2 : 3;
+      }
+      const pt = pointOnArenaEdge(side);
+      x = pt.x;
+      y = pt.y;
+      if (!p || dist(x, y, p.x, p.y) >= CFG.enemyMinSpawnDistanceFromPlayerPixels) break;
     }
     state.enemies.push({
       x,
@@ -337,26 +335,29 @@
     });
   }
 
-  function spawnTarget() {
-    if (state.targets.length >= CFG.targetMaxAlive) return;
-    const pad = CFG.targetEdgePaddingPixels;
+  function placeOnRing(distance) {
     const p = state.player;
-    let x = 0;
-    let y = 0;
-    let ok = false;
-    for (let tries = 0; tries < 24; tries++) {
-      x = randRange(pad, CFG.arenaWidthPixels - pad);
-      y = randRange(pad, CFG.arenaHeightPixels - pad);
-      if (!p || dist(x, y, p.x, p.y) >= CFG.targetMinDistanceFromPlayerPixels) {
-        ok = true;
-        break;
-      }
-    }
-    if (!ok && p) {
+    const pad = CFG.targetEdgePaddingPixels;
+    let best = {
+      x: clamp(p.x, pad, CFG.arenaWidthPixels - pad),
+      y: clamp(p.y - distance, pad, CFG.arenaHeightPixels - pad),
+    };
+    let bestD = dist(best.x, best.y, p.x, p.y);
+    for (let tries = 0; tries < 18; tries++) {
       const ang = Math.random() * Math.PI * 2;
-      x = clamp(p.x + Math.cos(ang) * 180, pad, CFG.arenaWidthPixels - pad);
-      y = clamp(p.y + Math.sin(ang) * 180, pad, CFG.arenaHeightPixels - pad);
+      const x = clamp(p.x + Math.cos(ang) * distance, pad, CFG.arenaWidthPixels - pad);
+      const y = clamp(p.y + Math.sin(ang) * distance, pad, CFG.arenaHeightPixels - pad);
+      const d = dist(x, y, p.x, p.y);
+      if (d > bestD) {
+        best = { x, y };
+        bestD = d;
+      }
+      if (d >= distance * CFG.targetRingKeepRatio) return { x, y };
     }
+    return best;
+  }
+
+  function pushTarget(x, y) {
     state.targets.push({
       x,
       y,
@@ -367,19 +368,37 @@
     });
   }
 
+  function spawnOpenerTarget() {
+    const p = state.player;
+    const pad = CFG.targetEdgePaddingPixels;
+    const d = CFG.targetOpenerDistancePixels;
+    const ang = CFG.targetOpenerAngleRadians;
+    pushTarget(
+      clamp(p.x + Math.cos(ang) * d, pad, CFG.arenaWidthPixels - pad),
+      clamp(p.y + Math.sin(ang) * d, pad, CFG.arenaHeightPixels - pad)
+    );
+  }
+
+  function spawnTarget() {
+    if (state.targets.length >= CFG.targetMaxAlive) return;
+    const farOk = state.grabs >= CFG.targetFarUnlockGrabs && Math.random() < CFG.targetFarChance;
+    const distance = farOk
+      ? randRange(CFG.targetFarMinPixels, CFG.targetFarMaxPixels)
+      : randRange(CFG.targetNearMinPixels, CFG.targetNearMaxPixels);
+    const pos = placeOnRing(distance);
+    pushTarget(pos.x, pos.y);
+  }
+
   function spawnTargetNearAim() {
     const p = state.player;
     if (!p) return;
     const n = norm(pointerAim.x - p.x, pointerAim.y - p.y);
-    const len = 120;
-    state.targets.push({
-      x: clamp(p.x + n.x * len, 40, CFG.arenaWidthPixels - 40),
-      y: clamp(p.y + n.y * len, 40, CFG.arenaHeightPixels - 40),
-      r: CFG.targetRadiusPixels,
-      life: CFG.targetLifetimeSeconds,
-      alive: true,
-      phase: 0,
-    });
+    const len = CFG.targetNearMinPixels;
+    const pad = CFG.targetEdgePaddingPixels;
+    pushTarget(
+      clamp(p.x + n.x * len, pad, CFG.arenaWidthPixels - pad),
+      clamp(p.y + n.y * len, pad, CFG.arenaHeightPixels - pad)
+    );
   }
 
   // —— VFX ——
@@ -423,11 +442,11 @@
   }
 
   // —— Combat ——
-  function hurtPlayer(amount, fromX, fromY) {
+  function hurtPlayer(amount, fromX, fromY, ignoreInvuln) {
     const p = state.player;
     if (!p || state.mode !== 'play') return;
     if (debug.godMode) return;
-    if (p.invuln > 0) return;
+    if (p.invuln > 0 && !ignoreInvuln) return;
     p.hp -= amount;
     p.invuln = CFG.playerInvincibleAfterHitSeconds;
     p.hurtFlash = CFG.playerHurtFlashDurationSeconds;
@@ -461,6 +480,7 @@
     state.grabs += kind === 'enemy' ? CFG.enemyGrabScore : CFG.targetGrabScore;
     state.grabCooldown = CFG.stretchGrabCooldownSeconds;
     state.stretch.grabbedThisHold = true;
+    state.stretch.latched = true;
     applyHitstop(kind === 'enemy' ? CFG.hitstopOnEnemySlapSeconds : CFG.hitstopOnGrabSeconds);
     applyShake(kind === 'enemy' ? CFG.shakeOnEnemySlapPixels : CFG.shakeOnGrabPixels);
     AudioSys.grab();
@@ -496,6 +516,9 @@
     s.length = CFG.stretchMinLengthPixels;
     s.snapbackT = 0;
     s.needRelease = true;
+    s.latched = false;
+    s.warning = false;
+    s.danger = false;
     AudioSys.stopStretchHum();
     AudioSys.snap();
     applyHitstop(CFG.hitstopOnOverstretchSnapSeconds);
@@ -516,7 +539,7 @@
     p.scaleX = 1.45;
     p.scaleY = 0.55;
     p.poseT = CFG.playerPoseRecoverSeconds;
-    hurtPlayer(CFG.stretchOverstretchSelfDamage, tipX, tipY);
+    hurtPlayer(CFG.stretchOverstretchSelfDamage, tipX, tipY, true);
   }
 
   function releaseStretch() {
@@ -526,6 +549,9 @@
     const len = s.length;
     const n = { x: Math.cos(s.angle), y: Math.sin(s.angle) };
     s.active = false;
+    s.latched = false;
+    s.warning = false;
+    s.danger = false;
     s.snapbackT = CFG.stretchSnapbackDurationSeconds;
     s.snapbackFrom = len;
     AudioSys.stopStretchHum();
@@ -580,9 +606,17 @@
         s.active = true;
         s.length = CFG.stretchMinLengthPixels;
         s.grabbedThisHold = false;
+        s.latched = false;
+        s.warning = false;
+        s.danger = false;
       }
-      s.length += CFG.stretchGrowPixelsPerSecond * dt;
       const warnAt = CFG.stretchSnapLengthPixels * CFG.stretchWarningRatio;
+      if (!s.latched) {
+        let rate = CFG.stretchGrowPixelsPerSecond;
+        if (s.length >= CFG.stretchMaxSafeLengthPixels) rate = CFG.stretchGrowDangerPixelsPerSecond;
+        else if (s.length >= warnAt) rate = CFG.stretchGrowWarningPixelsPerSecond;
+        s.length += rate * dt;
+      }
       s.warning = s.length >= warnAt;
       s.danger = s.length >= CFG.stretchMaxSafeLengthPixels;
       // tension squash
@@ -590,11 +624,6 @@
       p.scaleX = 1 - t * 0.25;
       p.scaleY = 1 + t * 0.35;
       AudioSys.startStretchHum(t);
-
-      if (s.length >= CFG.stretchSnapLengthPixels) {
-        overstretchSnap();
-        return;
-      }
     } else if (s.active) {
       // released
       releaseStretch();
@@ -603,9 +632,8 @@
     s.tipX = p.x + Math.cos(s.angle) * s.length;
     s.tipY = p.y + Math.sin(s.angle) * s.length;
 
-    // grab checks while stretching
-    if (s.active && state.grabCooldown <= 0) {
-      // targets
+    // grab checks while stretching — a grab latches length so success cannot roll into a snap
+    if (s.active && !s.latched && state.grabCooldown <= 0) {
       for (const t of state.targets) {
         if (!t.alive) continue;
         if (dist(s.tipX, s.tipY, t.x, t.y) <= t.r + CFG.stretchTipRadiusPixels) {
@@ -614,16 +642,21 @@
           break;
         }
       }
-      // enemies — slap/grab with tip
-      for (const e of state.enemies) {
-        if (!e.alive) continue;
-        if (dist(s.tipX, s.tipY, e.x, e.y) <= e.r + CFG.stretchTipRadiusPixels) {
-          e.alive = false;
-          onGrab(e.x, e.y, 'enemy');
-          state.enemySpawnTimer = Math.max(state.enemySpawnTimer, CFG.enemyRespawnDelaySeconds);
-          break;
+      if (!s.latched) {
+        for (const e of state.enemies) {
+          if (!e.alive) continue;
+          if (dist(s.tipX, s.tipY, e.x, e.y) <= e.r + CFG.stretchTipRadiusPixels) {
+            e.alive = false;
+            onGrab(e.x, e.y, 'enemy');
+            state.enemySpawnTimer = Math.max(state.enemySpawnTimer, CFG.enemyRespawnDelaySeconds);
+            break;
+          }
         }
       }
+    }
+
+    if (s.active && !s.latched && s.length >= CFG.stretchSnapLengthPixels) {
+      overstretchSnap();
     }
   }
 
