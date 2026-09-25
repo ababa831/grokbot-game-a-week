@@ -26,16 +26,18 @@ window.SEND_BACK_CONFIG = Object.freeze({
   playerNudgeMaxOffsetPixels: 72,
   playerSafePocketHalfWidthPixels: 90,
 
-  // —— Parry zone (yellow band) ——
-  parryZoneInnerRadiusPixels: 36,
-  parryZoneOuterRadiusPixels: 130,
-  parryZoneHalfAngleRadians: 1.25, // ~72° cone upward
-  parryZoneFacingRadians: -Math.PI / 2, // up
-  parryWhiffCooldownSeconds: 0.1,
-  reflectInputBufferSeconds: 0.1,
-  perfectWindowFraction: 0.45, // center band of radial thickness = perfect
-  perfectSpeedMul: 1.55,
+  // —— Parry gate: a thin bar. Its shape IS the timing window. ——
+  // Yellow bar = normal return. White stripe in the vertical center = perfect.
+  parryGateOffsetYPixels: 78,
+  parryGateHalfWidthPixels: 156,
+  parryGateHalfHeightPixels: 20,
+  parryPerfectHalfHeightPixels: 6,
+  parryWhiffCooldownSeconds: 0.28,
+  parryWhiffMaxLockSeconds: 2.4,
+  reflectInputBufferSeconds: 0.05,
+  perfectSpeedMul: 1.75,
   perfectDamageBonus: 1,
+  perfectReturnBonus: 1,
   normalReflectSpeedMul: 1.15,
   reflectShotRadiusPixels: 9,
   reflectShotDamage: 1,
@@ -235,6 +237,7 @@ window.SEND_BACK_CONFIG = Object.freeze({
   reflectBurstSpeedRangePixelsPerSecond: 140,
   reflectBurstLifetimeSeconds: 0.2,
   perfectFlashLifetimeSeconds: 0.15,
+  calloutLifetimeSeconds: 0.55,
 
   // —— Audio ——
   ambientVolumeLinear: 0.045,

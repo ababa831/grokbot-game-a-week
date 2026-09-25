@@ -283,18 +283,83 @@ body {
   background: #0a0a0a;
   border: 3px solid #f0e6d2;
   border-radius: 50%;
+  z-index: 1;
+}
+
+.how-art .you-tag {
+  position: absolute;
+  left: 146px;
+  bottom: 24px;
+  font-family: var(--font-display);
+  font-size: 16px;
+  color: #ffcc33;
+  text-shadow: 2px 2px 0 #0a0a0a;
+  z-index: 2;
+}
+
+.how-art .you-tag::before {
+  content: '';
+  position: absolute;
+  left: -36px;
+  top: 9px;
+  width: 28px;
+  height: 4px;
+  background: #ffcc33;
+  box-shadow: 0 0 0 2px #0a0a0a;
+}
+
+.how-art .you-tag::after {
+  content: '';
+  position: absolute;
+  left: -44px;
+  top: 4px;
+  border: 7px solid transparent;
+  border-right: 10px solid #ffcc33;
+  filter: drop-shadow(-1px 1px 0 #0a0a0a);
 }
 
 .how-art .band {
   position: absolute;
-  left: 70px;
-  bottom: 52px;
-  width: 100px;
-  height: 36px;
+  left: 36px;
+  bottom: 56px;
+  width: 168px;
+  height: 22px;
   border: 3px solid #1a1200;
-  border-radius: 50% 50% 40% 40%;
-  background: rgba(255, 204, 51, 0.55);
-  box-shadow: inset 0 0 0 2px #ffcc33;
+  border-radius: 4px;
+  background: #ffcc33;
+}
+
+.how-art .band::after {
+  content: '';
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 5px;
+  height: 6px;
+  background: #fff8e7;
+  border: 2px solid #0a0a0a;
+}
+
+.how-art .mid-label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 84px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 900;
+  color: #fff8e7;
+  text-shadow: 1px 1px 0 #0a0a0a;
+}
+
+.how-art .perfect-tag {
+  position: absolute;
+  right: 18px;
+  top: 18px;
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: #ffe066;
+  text-shadow: 2px 2px 0 #0a0a0a;
 }
 
 .how-art .enemy {

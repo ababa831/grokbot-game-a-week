@@ -159,6 +159,7 @@
     animTime: 0,
     perfectFlash: 0,
     zoneHot: false,
+    zonePerfect: false,
   };
 
   function dist(ax, ay, bx, by) {
@@ -210,6 +211,7 @@
     state.whiffCooldown = 0;
     state.perfectFlash = 0;
     state.zoneHot = false;
+    state.zonePerfect = false;
     reflectBufferSeconds = 0;
     clearPopup.classList.remove('show');
     clearPopup.textContent = '';
@@ -313,32 +315,32 @@
   const HOWTO_SLIDES = [
     {
       kicker: 'あなたはコレ',
-      title: '黒シルエット',
-      body: '中央下の安全地帯に立つ。敵の弾が来るまで待つ。',
+      title: '黒い丸',
+      body: '矢印の先があなた。中央下で、弾が届くまで待つ。',
       art: 'you',
     },
     {
       kicker: '黄色い帯で返せ',
-      title: 'タイミング！',
-      body: '弾が黄色い帯に入ったら、クリック／Space／タップ。',
+      title: '帯が窓',
+      body: '弾が黄色い帯に乗った瞬間だけ返す。白い線はパーフェクト。',
       art: 'band',
     },
     {
       kicker: '敵の弾を敵へ',
-      title: '返しの快感',
-      body: '打ち返した弾が敵を倒す。真ん中で返すとパーフェクト。',
+      title: '差が見える',
+      body: 'ふつうは返し+1。白い線は「パーフェクト」で返し+2。空振りすると、その弾は返せない。',
       art: 'return',
     },
   ];
 
   function howArtHtml(kind) {
     if (kind === 'you') {
-      return `<div class="how-art"><div class="enemy"></div><div class="player"></div></div>`;
+      return `<div class="how-art"><div class="enemy"></div><div class="player"></div><div class="you-tag">あなた</div></div>`;
     }
     if (kind === 'band') {
-      return `<div class="how-art"><div class="enemy"></div><div class="shot"></div><div class="band"></div><div class="player"></div></div>`;
+      return `<div class="how-art"><div class="enemy"></div><div class="mid-label">白い線＝パーフェクト</div><div class="shot"></div><div class="band"></div><div class="player"></div></div>`;
     }
-    return `<div class="how-art"><div class="enemy"></div><div class="arrow-up"></div><div class="shot return"></div><div class="band"></div><div class="player"></div></div>`;
+    return `<div class="how-art"><div class="enemy"></div><div class="arrow-up"></div><div class="shot return"></div><div class="band"></div><div class="player"></div><div class="perfect-tag">+2</div></div>`;
   }
 
   function showHowTo(index) {
@@ -476,7 +478,7 @@
       x,
       y,
       life: CFG.hitMarkLifetimeSeconds,
-      maxLife: CFG.hitMarkDurationSeconds,
+      maxLife: CFG.hitMarkLifetimeSeconds,
     });
   }
 
@@ -494,37 +496,46 @@
         y,
         vx: Math.cos(ang) * spd,
         vy: Math.sin(ang) * spd,
-        life: CFG.reflectBurstDurationSeconds,
-        maxLife: CFG.reflectBurstDurationSeconds,
+        life: CFG.reflectBurstLifetimeSeconds,
+        maxLife: CFG.reflectBurstLifetimeSeconds,
         color: color || CFG.colorVfxCore,
         r: 3 + Math.random() * 3,
       });
     }
   }
 
+  function gateRect(px, py) {
+    const cy = py - CFG.parryGateOffsetYPixels;
+    const hh = CFG.parryGateHalfHeightPixels;
+    const hw = CFG.parryGateHalfWidthPixels;
+    return { x: px - hw, y: cy - hh, w: hw * 2, h: hh * 2, cy, cx: px };
+  }
+
   function pointInParryZone(px, py, shotX, shotY) {
-    const dx = shotX - px;
-    const dy = shotY - py;
-    const d = Math.hypot(dx, dy);
-    if (d < CFG.parryZoneInnerRadiusPixels || d > CFG.parryZoneOuterRadiusPixels) return null;
-    const ang = Math.atan2(dy, dx);
-    let diff = ang - CFG.parryZoneFacingRadians;
-    while (diff > Math.PI) diff -= Math.PI * 2;
-    while (diff < -Math.PI) diff += Math.PI * 2;
-    if (Math.abs(diff) > CFG.parryZoneHalfAngleRadians) return null;
-    const radialT =
-      (d - CFG.parryZoneInnerRadiusPixels) /
-      Math.max(1, CFG.parryZoneOuterRadiusPixels - CFG.parryZoneInnerRadiusPixels);
-    // 0 at inner, 1 at outer; perfect near center (0.5)
-    const centerDist = Math.abs(radialT - 0.5) * 2;
-    const perfect = centerDist <= CFG.perfectWindowFraction;
-    return { d, radialT, perfect };
+    const g = gateRect(px, py);
+    if (shotX < g.x || shotX > g.x + g.w || shotY < g.y || shotY > g.y + g.h) return null;
+    const centerDist = Math.abs(shotY - g.cy);
+    return {
+      centerDist,
+      radialT: centerDist,
+      perfect: centerDist <= CFG.parryPerfectHalfHeightPixels,
+    };
   }
 
   function doWhiff() {
-    state.whiffCooldown = CFG.parryWhiffCooldownSeconds;
-    AudioSys.whiff();
     const p = state.player;
+    let lock = CFG.parryWhiffCooldownSeconds;
+    if (p) {
+      const g = gateRect(p.x, p.y);
+      const exitY = g.y + g.h;
+      for (const shot of state.shots) {
+        if (!shot.alive || shot.vy <= 0 || shot.y >= exitY) continue;
+        const t = (exitY - shot.y) / shot.vy;
+        if (t > lock) lock = t;
+      }
+    }
+    state.whiffCooldown = Math.min(lock, CFG.parryWhiffMaxLockSeconds);
+    AudioSys.whiff();
     if (!p) return;
     p.poseSX = 0.85;
     p.poseSY = 1.15;
@@ -576,17 +587,19 @@
       y: shot.y,
       vx: dx * baseSpeed,
       vy: dy * baseSpeed,
-      r: CFG.reflectShotRadiusPixels,
+      r: CFG.reflectShotRadiusPixels * (perfect ? 1.35 : 1),
       damage: CFG.reflectShotDamage + (perfect ? CFG.perfectDamageBonus : 0),
       alive: true,
       perfect,
       ownerIndex: shot.ownerIndex,
     });
 
-    state.returns += 1;
-    state.waveReturns += 1;
+    const gain = perfect ? 1 + CFG.perfectReturnBonus : 1;
+    state.returns += gain;
+    state.waveReturns += gain;
     saveBest();
     updateHud();
+    spawnCallout(p.x, gateRect(p.x, p.y).y - 8, perfect ? 'パーフェクト +' + gain : '返し +' + gain, perfect);
 
     p.poseSX = CFG.playerReflectStretchScaleX;
     p.poseSY = CFG.playerReflectStretchScaleY;
@@ -595,7 +608,7 @@
     if (perfect) {
       state.hitstopRemaining = Math.max(state.hitstopRemaining, CFG.hitstopOnPerfectSeconds);
       state.shakeAmount = Math.max(state.shakeAmount, CFG.shakeOnPerfectPixels);
-      state.perfectFlash = CFG.perfectFlashDurationSeconds;
+      state.perfectFlash = CFG.perfectFlashLifetimeSeconds;
       AudioSys.perfect();
     } else {
       state.hitstopRemaining = Math.max(state.hitstopRemaining, CFG.hitstopOnReflectSeconds);
@@ -604,8 +617,24 @@
     }
     spawnBurst(shot.x, shot.y, perfect ? CFG.colorPerfect : CFG.colorReflectShot);
     spawnHitMark(shot.x, shot.y);
+    state.zoneHot = false;
+    state.zonePerfect = false;
 
     checkWaveClear();
+  }
+
+  function spawnCallout(x, y, text, perfect) {
+    if (debug.hideVfx) return;
+    state.effects.push({
+      kind: 'callout',
+      x,
+      y,
+      text,
+      perfect,
+      life: CFG.calloutLifetimeSeconds,
+      maxLife: CFG.calloutLifetimeSeconds,
+      animateInHitstop: true,
+    });
   }
 
   function tryReflect() {
@@ -789,6 +818,7 @@
   function updateShots(dt) {
     const p = state.player;
     state.zoneHot = false;
+    state.zonePerfect = false;
     for (const shot of state.shots) {
       if (!shot.alive) continue;
       shot.x += shot.vx * dt;
@@ -802,8 +832,12 @@
         shot.alive = false;
         continue;
       }
-      if (p && pointInParryZone(p.x, p.y, shot.x, shot.y)) {
-        state.zoneHot = true;
+      if (p) {
+        const info = pointInParryZone(p.x, p.y, shot.x, shot.y);
+        if (info) {
+          state.zoneHot = true;
+          if (info.perfect) state.zonePerfect = true;
+        }
       }
       if (p && dist(shot.x, shot.y, p.x, p.y) < shot.r + p.r) {
         shot.alive = false;
@@ -895,40 +929,44 @@
     }
   }
 
+  function armReflectBuffer() {
+    if (state.whiffCooldown > 0) return;
+    if (reflectPressedThisFrame) {
+      reflectBufferSeconds = CFG.reflectInputBufferSeconds;
+    }
+    if (typeof location !== 'undefined' && location.hash === '#autoparry' && state.zoneHot) {
+      reflectBufferSeconds = Math.max(reflectBufferSeconds, CFG.reflectInputBufferSeconds);
+    }
+  }
+
+  function resolveReflectBuffer(dt) {
+    if (reflectBufferSeconds <= 0 || state.whiffCooldown > 0) {
+      if (state.whiffCooldown > 0) reflectBufferSeconds = 0;
+      return;
+    }
+    const best = findReflectableShot();
+    if (best) {
+      performReflect(best);
+      reflectBufferSeconds = 0;
+      return;
+    }
+    reflectBufferSeconds -= dt;
+    if (reflectBufferSeconds <= 0) doWhiff();
+  }
+
   function updatePlaying(dt) {
     if (state.whiffCooldown > 0) state.whiffCooldown -= dt;
     if (state.perfectFlash > 0) state.perfectFlash -= dt;
 
-    if (reflectPressedThisFrame) {
-      reflectBufferSeconds = CFG.reflectInputBufferSeconds;
-    }
-
+    armReflectBuffer();
     updatePlayer(dt);
     queuePendingFromSchedule(dt);
     updatePending(dt);
     updateShots(dt);
     updateEnemies(dt);
-
-    // Buffer: wait for a shot in the yellow band; whiff only if buffer expires empty.
-    if (reflectBufferSeconds > 0) {
-      if (state.whiffCooldown <= 0) {
-        const best = findReflectableShot();
-        if (best) {
-          performReflect(best);
-          reflectBufferSeconds = 0;
-        } else {
-          reflectBufferSeconds -= dt;
-          if (reflectBufferSeconds <= 0) doWhiff();
-        }
-      } else {
-        reflectBufferSeconds -= dt;
-      }
-    }
-
-    // Dev/autoparry: hold reflect buffer whenever a shot is in the yellow band.
-    if (typeof location !== 'undefined' && location.hash === '#autoparry' && state.zoneHot) {
-      reflectBufferSeconds = Math.max(reflectBufferSeconds, CFG.reflectInputBufferSeconds);
-    }
+    // A press only catches a shot already on the bar (plus a few frames).
+    // An empty press locks until that shot leaves the bar, so mashing misses.
+    resolveReflectBuffer(dt);
   }
 
   function tick(dt) {
@@ -960,8 +998,13 @@
       return;
     }
 
+    if (state.mode === 'playing') armReflectBuffer();
+
     if (state.hitstopRemaining > 0) {
       state.hitstopRemaining -= dt;
+      if (state.hitstopRemaining <= 0 && reflectBufferSeconds > 0 && !findReflectableShot()) {
+        reflectBufferSeconds = 0;
+      }
       updateEffects(dt, true);
       // shake decays even in hitstop for feel
       if (state.shakeAmount > 0) {
@@ -997,6 +1040,7 @@
     // Lightweight probes for automated playtests
     window.__SB_MODE = state.mode;
     window.__SB_ZONE_HOT = state.zoneHot;
+    window.__SB_ZONE_PERFECT = state.zonePerfect;
     window.__SB_SHOTS = state.shots.length;
     window.__SB_RETURNS = state.returns;
   }
@@ -1037,47 +1081,35 @@
     ctx.stroke();
   }
 
-  function drawParryZone() {
-    const p = state.player;
-    if (!p) return;
-    const hot = state.zoneHot;
-    const flash = state.perfectFlash > 0;
-    ctx.save();
-    ctx.translate(p.x, p.y);
-    ctx.rotate(CFG.parryZoneFacingRadians + Math.PI / 2);
-
-    const inner = CFG.parryZoneInnerRadiusPixels;
-    const outer = CFG.parryZoneOuterRadiusPixels;
-    const half = CFG.parryZoneHalfAngleRadians;
-
+  function roundRectPath(x, y, w, h, r) {
+    const radius = Math.min(r, w * 0.5, h * 0.5);
     ctx.beginPath();
-    ctx.arc(0, 0, outer, -half - Math.PI / 2, half - Math.PI / 2);
-    ctx.arc(0, 0, inner, half - Math.PI / 2, -half - Math.PI / 2, true);
+    ctx.moveTo(x + radius, y);
+    ctx.arcTo(x + w, y, x + w, y + h, radius);
+    ctx.arcTo(x + w, y + h, x, y + h, radius);
+    ctx.arcTo(x, y + h, x, y, radius);
+    ctx.arcTo(x, y, x + w, y, radius);
     ctx.closePath();
-    ctx.fillStyle = hot || flash ? 'rgba(255, 224, 102, 0.55)' : 'rgba(255, 204, 51, 0.28)';
+  }
+
+  function paintGate(px, py, hot, perfectHot, flash) {
+    const g = gateRect(px, py);
+    roundRectPath(g.x, g.y, g.w, g.h, 8);
+    ctx.fillStyle = hot ? CFG.colorParryZoneActive : CFG.colorParryZone;
     ctx.fill();
-    ctx.lineWidth = 3;
+    ctx.lineWidth = hot ? 4 : 3;
     ctx.strokeStyle = CFG.colorParryZoneEdge;
     ctx.stroke();
-    ctx.lineWidth = hot ? 4 : 2;
-    ctx.strokeStyle = hot || flash ? CFG.colorParryZoneActive : CFG.colorParryZone;
-    ctx.stroke();
 
-    // perfect band hint (center ring)
-    const midR =
-      (inner + outer) * 0.5 -
-      ((outer - inner) * 0.5 * CFG.perfectWindowFraction) / 2;
-    const midR2 =
-      (inner + outer) * 0.5 +
-      ((outer - inner) * 0.5 * CFG.perfectWindowFraction) / 2;
-    ctx.beginPath();
-    ctx.arc(0, 0, midR2, -half - Math.PI / 2, half - Math.PI / 2);
-    ctx.arc(0, 0, midR, half - Math.PI / 2, -half - Math.PI / 2, true);
-    ctx.closePath();
-    ctx.fillStyle = flash ? 'rgba(255, 248, 231, 0.35)' : 'rgba(255, 248, 231, 0.12)';
+    const stripeH = CFG.parryPerfectHalfHeightPixels * 2;
+    const stripeY = g.cy - CFG.parryPerfectHalfHeightPixels;
+    const inset = 10;
+    roundRectPath(g.x + inset, stripeY, g.w - inset * 2, stripeH, 3);
+    ctx.fillStyle = flash || perfectHot ? '#ffffff' : CFG.colorReflectShotCore;
     ctx.fill();
-
-    ctx.restore();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#0a0a0a';
+    ctx.stroke();
 
     if (hot) {
       ctx.save();
@@ -1085,12 +1117,19 @@
       ctx.textAlign = 'center';
       ctx.lineWidth = 4;
       ctx.strokeStyle = '#0a0a0a';
-      ctx.fillStyle = CFG.colorParryZoneActive;
-      const labelY = p.y - CFG.parryZoneOuterRadiusPixels - 8;
-      ctx.strokeText('返せ！', p.x, labelY);
-      ctx.fillText('返せ！', p.x, labelY);
+      ctx.fillStyle = perfectHot ? '#ffffff' : CFG.colorParryZoneEdge;
+      const label = perfectHot ? 'パーフェクト！' : '返せ！';
+      ctx.strokeText(label, px, g.y - 10);
+      ctx.fillStyle = perfectHot ? CFG.colorPerfect : CFG.colorParryZoneActive;
+      ctx.fillText(label, px, g.y - 10);
       ctx.restore();
     }
+  }
+
+  function drawParryZone() {
+    const p = state.player;
+    if (!p) return;
+    paintGate(p.x, p.y, state.zoneHot, state.zonePerfect, state.perfectFlash > 0);
   }
 
   function drawPlayer() {
@@ -1171,6 +1210,21 @@
       ctx.stroke();
 
       ctx.restore();
+
+      if (e.maxHp > 1) {
+        const pipW = 8;
+        const gap = 3;
+        const total = e.maxHp * pipW + (e.maxHp - 1) * gap;
+        const left = e.x - total * 0.5;
+        const top = e.y - e.r - 12;
+        for (let i = 0; i < e.maxHp; i++) {
+          ctx.fillStyle = i < e.hp ? CFG.colorEnemy : CFG.colorHpEmpty;
+          ctx.fillRect(left + i * (pipW + gap), top, pipW, 5);
+          ctx.strokeStyle = '#0a0a0a';
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(left + i * (pipW + gap), top, pipW, 5);
+        }
+      }
 
       if (telegraphing) {
         // aim line telegraph (opaque core + edge)
@@ -1272,6 +1326,20 @@
         ctx.lineWidth = 2;
         ctx.strokeStyle = CFG.colorVfxEdge;
         ctx.stroke();
+      } else if (ef.kind === 'callout') {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, Math.min(1, a * 1.5));
+        ctx.font = ef.perfect
+          ? '900 34px Dela Gothic One, sans-serif'
+          : '900 22px Dela Gothic One, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.lineWidth = 5;
+        ctx.strokeStyle = '#0a0a0a';
+        ctx.fillStyle = ef.perfect ? CFG.colorPerfect : CFG.colorParryZone;
+        const y = ef.y - (1 - a) * 16;
+        ctx.strokeText(ef.text, ef.x, y);
+        ctx.fillText(ef.text, ef.x, y);
+        ctx.restore();
       }
     }
   }
@@ -1312,27 +1380,7 @@
   }
 
   function drawParryZoneIdle() {
-    const cx = CFG.playerXPixels;
-    const cy = CFG.playerYPixels;
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate(CFG.parryZoneFacingRadians + Math.PI / 2);
-    const inner = CFG.parryZoneInnerRadiusPixels;
-    const outer = CFG.parryZoneOuterRadiusPixels;
-    const half = CFG.parryZoneHalfAngleRadians;
-    ctx.beginPath();
-    ctx.arc(0, 0, outer, -half - Math.PI / 2, half - Math.PI / 2);
-    ctx.arc(0, 0, inner, half - Math.PI / 2, -half - Math.PI / 2, true);
-    ctx.closePath();
-    ctx.fillStyle = 'rgba(255, 204, 51, 0.22)';
-    ctx.fill();
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = CFG.colorParryZoneEdge;
-    ctx.stroke();
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = CFG.colorParryZone;
-    ctx.stroke();
-    ctx.restore();
+    paintGate(CFG.playerXPixels, CFG.playerYPixels, false, false, false);
   }
 
   function drawIdlePreview() {
