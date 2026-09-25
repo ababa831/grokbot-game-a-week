@@ -15,6 +15,7 @@
   const waveLabelEl = document.getElementById('wave-label');
   const hpRow = document.getElementById('hp-row');
   const nowReturnsEl = document.getElementById('now-returns');
+  const comboEl = document.getElementById('combo-line');
   const nowWaveEl = document.getElementById('now-wave');
   const bestReturnsEl = document.getElementById('best-returns');
   const muteBtn = document.getElementById('mute-btn');
@@ -159,7 +160,9 @@
     animTime: 0,
     perfectFlash: 0,
     zoneHot: false,
-    zonePerfect: false,
+    zoneUlt: false,
+    ultLatch: 0,
+    combo: 0,
   };
 
   function dist(ax, ay, bx, by) {
@@ -191,6 +194,10 @@
       hpRow.appendChild(pip);
     }
     nowReturnsEl.textContent = String(state.returns);
+    if (comboEl) {
+      comboEl.textContent = state.combo > 0 ? state.combo + 'コンボ' : '';
+      comboEl.classList.toggle('hot', state.combo >= CFG.ultComboThreshold);
+    }
     nowWaveEl.textContent = String(state.waveIndex + 1);
     bestReturnsEl.textContent = String(state.bestReturns);
     const wave = CFG.waves[state.waveIndex];
@@ -211,7 +218,8 @@
     state.whiffCooldown = 0;
     state.perfectFlash = 0;
     state.zoneHot = false;
-    state.zonePerfect = false;
+    state.zoneUlt = false;
+    state.ultLatch = 0;
     reflectBufferSeconds = 0;
     clearPopup.classList.remove('show');
     clearPopup.textContent = '';
@@ -256,6 +264,7 @@
 
   function startRun() {
     state.returns = 0;
+    state.combo = 0;
     state.deathsOnCurrentWave = 0;
     state.waveIndex = 0;
     spawnWave(0, { fullHeal: true });
@@ -320,15 +329,15 @@
       art: 'you',
     },
     {
-      kicker: '黄色い帯で返せ',
-      title: '帯が窓',
-      body: '弾が黄色い帯に乗った瞬間だけ返す。白い線はパーフェクト。',
+      kicker: '扇の芯でウルト',
+      title: '芯がクリティカル',
+      body: '黄色い扇の白い芯に乗せた瞬間に返すと、弾がウルトになる。',
       art: 'band',
     },
     {
-      kicker: '敵の弾を敵へ',
-      title: '差が見える',
-      body: 'ふつうは返し+1。白い線は「パーフェクト」で返し+2。空振りすると、その弾は返せない。',
+      kicker: 'コンボで伸びる',
+      title: '貫く',
+      body: 'ウルト弾は敵を貫く。連続で返すとコンボ。3コンボのウルトはさらに太い。',
       art: 'return',
     },
   ];
@@ -338,9 +347,9 @@
       return `<div class="how-art"><div class="enemy"></div><div class="player"></div><div class="you-tag">あなた</div></div>`;
     }
     if (kind === 'band') {
-      return `<div class="how-art"><div class="enemy"></div><div class="mid-label">白い線＝パーフェクト</div><div class="shot"></div><div class="band"></div><div class="player"></div></div>`;
+      return `<div class="how-art"><div class="enemy"></div><div class="mid-label">白い芯＝ウルト</div><div class="fan"></div><div class="fan-heart"></div><div class="shot"></div><div class="player"></div></div>`;
     }
-    return `<div class="how-art"><div class="enemy"></div><div class="arrow-up"></div><div class="shot return"></div><div class="band"></div><div class="player"></div><div class="perfect-tag">+2</div></div>`;
+    return `<div class="how-art"><div class="enemy"></div><div class="arrow-up"></div><div class="ult-shot"></div><div class="fan"></div><div class="fan-heart"></div><div class="player"></div><div class="perfect-tag">ウルト</div></div>`;
   }
 
   function showHowTo(index) {
@@ -456,6 +465,7 @@
     if (debug.godMode) return;
     if (state.player.invuln > 0) return;
     state.player.hp -= dmg;
+    state.combo = 0;
     state.player.invuln = CFG.playerInvincibleAfterHitSeconds;
     state.player.hurtFlash = CFG.playerHurtFlashDurationSeconds;
     state.player.poseSX = CFG.playerHurtSquashScaleX;
@@ -504,33 +514,47 @@
     }
   }
 
-  function gateRect(px, py) {
-    const cy = py - CFG.parryGateOffsetYPixels;
-    const hh = CFG.parryGateHalfHeightPixels;
-    const hw = CFG.parryGateHalfWidthPixels;
-    return { x: px - hw, y: cy - hh, w: hw * 2, h: hh * 2, cy, cx: px };
+  function wrapAngle(rad) {
+    let a = rad;
+    while (a > Math.PI) a -= Math.PI * 2;
+    while (a < -Math.PI) a += Math.PI * 2;
+    return a;
+  }
+
+  function fanSample(px, py, shotX, shotY) {
+    const dx = shotX - px;
+    const dy = shotY - py;
+    const d = Math.hypot(dx, dy) || 0.0001;
+    return {
+      d,
+      diff: wrapAngle(Math.atan2(dy, dx) - CFG.parryZoneFacingRadians),
+      nx: dx / d,
+      ny: dy / d,
+    };
   }
 
   function pointInParryZone(px, py, shotX, shotY) {
-    const g = gateRect(px, py);
-    if (shotX < g.x || shotX > g.x + g.w || shotY < g.y || shotY > g.y + g.h) return null;
-    const centerDist = Math.abs(shotY - g.cy);
-    return {
-      centerDist,
-      radialT: centerDist,
-      perfect: centerDist <= CFG.parryPerfectHalfHeightPixels,
-    };
+    const s = fanSample(px, py, shotX, shotY);
+    if (s.d < CFG.parryZoneInnerRadiusPixels || s.d > CFG.parryZoneOuterRadiusPixels) return null;
+    if (Math.abs(s.diff) > CFG.parryZoneHalfAngleRadians) return null;
+    const ult =
+      Math.abs(s.diff) <= CFG.parryUltHalfAngleRadians &&
+      s.d >= CFG.parryUltInnerRadiusPixels &&
+      s.d <= CFG.parryUltOuterRadiusPixels;
+    return { d: s.d, ang: s.diff, radialT: s.d, ult };
   }
 
   function doWhiff() {
     const p = state.player;
     let lock = CFG.parryWhiffCooldownSeconds;
     if (p) {
-      const g = gateRect(p.x, p.y);
-      const exitY = g.y + g.h;
       for (const shot of state.shots) {
-        if (!shot.alive || shot.vy <= 0 || shot.y >= exitY) continue;
-        const t = (exitY - shot.y) / shot.vy;
+        if (!shot.alive) continue;
+        const s = fanSample(p.x, p.y, shot.x, shot.y);
+        if (s.d <= CFG.parryZoneInnerRadiusPixels) continue;
+        const closing = -(shot.vx * s.nx + shot.vy * s.ny);
+        if (closing <= 0) continue;
+        const t = (s.d - CFG.parryZoneInnerRadiusPixels) / closing;
         if (t > lock) lock = t;
       }
     }
@@ -551,7 +575,7 @@
       if (!shot.alive || shot.reflected) continue;
       const info = pointInParryZone(p.x, p.y, shot.x, shot.y);
       if (!info) continue;
-      const score = Math.abs(info.radialT - 0.5);
+      const score = info.ult ? info.d * 0.01 : 1000 + Math.abs(info.ang);
       if (score < bestScore) {
         bestScore = score;
         best = { shot, info };
@@ -566,8 +590,12 @@
     shot.alive = false;
     shot.reflected = true;
 
-    const perfect = info.perfect;
-    const speedMul = perfect ? CFG.perfectSpeedMul : CFG.normalReflectSpeedMul;
+    const ult = !!info.ult || state.ultLatch > 0;
+    window.__SB_LAST = { ult: !!info.ult, latch: state.ultLatch, d: info.d, ang: info.ang, decided: ult };
+    state.ultLatch = 0;
+    state.combo += 1;
+    const awake = ult && state.combo >= CFG.ultComboThreshold;
+    const speedMul = ult ? CFG.ultSpeedMul : CFG.normalReflectSpeedMul;
     const baseSpeed = shot.speed * speedMul;
     let tx = shot.originX;
     let ty = shot.originY;
@@ -587,27 +615,38 @@
       y: shot.y,
       vx: dx * baseSpeed,
       vy: dy * baseSpeed,
-      r: CFG.reflectShotRadiusPixels * (perfect ? 1.35 : 1),
-      damage: CFG.reflectShotDamage + (perfect ? CFG.perfectDamageBonus : 0),
+      r: ult ? (awake ? CFG.ultAwakeRadiusPixels : CFG.ultShotRadiusPixels) : CFG.reflectShotRadiusPixels,
+      damage: ult ? (awake ? CFG.ultAwakeDamage : CFG.ultShotDamage) : CFG.reflectShotDamage,
       alive: true,
-      perfect,
+      ult,
+      awake,
+      grow: ult ? 0.15 : 1,
+      trail: [],
+      hitEnemies: [],
       ownerIndex: shot.ownerIndex,
     });
 
-    const gain = perfect ? 1 + CFG.perfectReturnBonus : 1;
+    const gain = ult ? 1 + (awake ? CFG.ultAwakeReturnBonus : CFG.ultReturnBonus) : 1;
     state.returns += gain;
     state.waveReturns += gain;
     saveBest();
     updateHud();
-    spawnCallout(p.x, gateRect(p.x, p.y).y - 8, perfect ? 'パーフェクト +' + gain : '返し +' + gain, perfect);
+    const labelY = p.y - CFG.parryZoneOuterRadiusPixels - 28;
+    if (ult) {
+      spawnCallout(p.x, labelY, awake ? 'ウルト！！' : 'ウルト！', true);
+      if (state.combo >= 2) spawnCallout(p.x, labelY - 36, state.combo + 'コンボ', false);
+      spawnSlash(shot.x, shot.y, shot.x + dx * (awake ? CFG.ultSlashLengthPixels * 1.35 : CFG.ultSlashLengthPixels), shot.y + dy * (awake ? CFG.ultSlashLengthPixels * 1.35 : CFG.ultSlashLengthPixels), awake);
+    } else {
+      spawnCallout(p.x, labelY, state.combo >= 2 ? state.combo + 'コンボ' : '返し', false);
+    }
 
     p.poseSX = CFG.playerReflectStretchScaleX;
     p.poseSY = CFG.playerReflectStretchScaleY;
     p.poseTimer = CFG.playerPoseRecoverSeconds;
 
-    if (perfect) {
-      state.hitstopRemaining = Math.max(state.hitstopRemaining, CFG.hitstopOnPerfectSeconds);
-      state.shakeAmount = Math.max(state.shakeAmount, CFG.shakeOnPerfectPixels);
+    if (ult) {
+      state.hitstopRemaining = Math.max(state.hitstopRemaining, awake ? CFG.hitstopOnPerfectSeconds + 0.02 : CFG.hitstopOnPerfectSeconds);
+      state.shakeAmount = Math.max(state.shakeAmount, awake ? CFG.shakeOnPerfectPixels + 4 : CFG.shakeOnPerfectPixels);
       state.perfectFlash = CFG.perfectFlashLifetimeSeconds;
       AudioSys.perfect();
     } else {
@@ -615,12 +654,28 @@
       state.shakeAmount = Math.max(state.shakeAmount, CFG.shakeOnReflectPixels);
       AudioSys.reflect();
     }
-    spawnBurst(shot.x, shot.y, perfect ? CFG.colorPerfect : CFG.colorReflectShot);
+    spawnBurst(shot.x, shot.y, ult ? CFG.colorPerfect : CFG.colorReflectShot);
+    if (ult) spawnBurst(shot.x, shot.y, CFG.colorVfxCore);
     spawnHitMark(shot.x, shot.y);
     state.zoneHot = false;
-    state.zonePerfect = false;
+    state.zoneUlt = false;
 
     checkWaveClear();
+  }
+
+  function spawnSlash(x, y, x2, y2, awake) {
+    if (debug.hideVfx) return;
+    state.effects.push({
+      kind: 'slash',
+      x,
+      y,
+      x2,
+      y2,
+      awake,
+      life: CFG.ultTrailLifetimeSeconds + 0.06,
+      maxLife: CFG.ultTrailLifetimeSeconds + 0.06,
+      animateInHitstop: true,
+    });
   }
 
   function spawnCallout(x, y, text, perfect) {
@@ -667,18 +722,7 @@
   function checkWaveClear() {
     const wave = CFG.waves[state.waveIndex];
     if (!wave) return;
-    const allDead = state.enemies.every((e) => !e.alive);
-    const enoughReturns = state.waveReturns >= wave.clearTargetReturns;
-    if (allDead || enoughReturns) {
-      // finish remaining enemies visually if returns met
-      if (enoughReturns) {
-        for (const e of state.enemies) {
-          if (e.alive) {
-            e.alive = false;
-            spawnBurst(e.x, e.y, CFG.colorEnemy);
-          }
-        }
-      }
+    if (state.enemies.length > 0 && state.enemies.every((e) => !e.alive)) {
       clearWave();
     }
   }
@@ -818,7 +862,7 @@
   function updateShots(dt) {
     const p = state.player;
     state.zoneHot = false;
-    state.zonePerfect = false;
+    state.zoneUlt = false;
     for (const shot of state.shots) {
       if (!shot.alive) continue;
       shot.x += shot.vx * dt;
@@ -836,7 +880,10 @@
         const info = pointInParryZone(p.x, p.y, shot.x, shot.y);
         if (info) {
           state.zoneHot = true;
-          if (info.perfect) state.zonePerfect = true;
+          if (info.ult) {
+            state.zoneUlt = true;
+            state.ultLatch = CFG.ultLatchSeconds;
+          }
         }
       }
       if (p && dist(shot.x, shot.y, p.x, p.y) < shot.r + p.r) {
@@ -859,13 +906,25 @@
         rs.alive = false;
         continue;
       }
+      if (rs.ult) {
+        rs.grow = Math.min(1, (rs.grow || 0) + dt / CFG.ultGrowSeconds);
+        rs.trail.push({ x: rs.x, y: rs.y, life: CFG.ultTrailLifetimeSeconds });
+        for (const crumb of rs.trail) crumb.life -= dt;
+        rs.trail = rs.trail.filter((crumb) => crumb.life > 0);
+      }
       for (const enemy of state.enemies) {
         if (!enemy.alive) continue;
-        if (dist(rs.x, rs.y, enemy.x, enemy.y) < rs.r + enemy.r) {
-          rs.alive = false;
+        if (rs.hitEnemies && rs.hitEnemies.indexOf(enemy) >= 0) continue;
+        if (dist(rs.x, rs.y, enemy.x, enemy.y) < rs.r * (rs.ult ? 0.55 + 0.45 * (rs.grow || 1) : 1) + enemy.r) {
           damageEnemy(enemy, rs.damage, enemy.x, enemy.y);
+          if (rs.ult) {
+            rs.hitEnemies.push(enemy);
+            spawnBurst(enemy.x, enemy.y, rs.awake ? CFG.colorPerfect : CFG.colorVfxCore);
+          } else {
+            rs.alive = false;
+          }
           checkWaveClear();
-          break;
+          if (!rs.alive) break;
         }
       }
     }
@@ -934,7 +993,7 @@
     if (reflectPressedThisFrame) {
       reflectBufferSeconds = CFG.reflectInputBufferSeconds;
     }
-    if (typeof location !== 'undefined' && location.hash === '#autoparry' && state.zoneHot) {
+    if (typeof location !== 'undefined' && location.hash === '#autoparry' && state.zoneUlt) {
       reflectBufferSeconds = Math.max(reflectBufferSeconds, CFG.reflectInputBufferSeconds);
     }
   }
@@ -963,6 +1022,7 @@
     queuePendingFromSchedule(dt);
     updatePending(dt);
     updateShots(dt);
+    if (!state.zoneUlt && state.ultLatch > 0) state.ultLatch -= dt;
     updateEnemies(dt);
     // A press only catches a shot already on the bar (plus a few frames).
     // An empty press locks until that shot leaves the bar, so mashing misses.
@@ -1002,6 +1062,9 @@
 
     if (state.hitstopRemaining > 0) {
       state.hitstopRemaining -= dt;
+      for (const rs of state.reflectShots) {
+        if (rs.ult) rs.grow = Math.min(1, (rs.grow || 0) + dt / CFG.ultGrowSeconds);
+      }
       if (state.hitstopRemaining <= 0 && reflectBufferSeconds > 0 && !findReflectableShot()) {
         reflectBufferSeconds = 0;
       }
@@ -1040,7 +1103,11 @@
     // Lightweight probes for automated playtests
     window.__SB_MODE = state.mode;
     window.__SB_ZONE_HOT = state.zoneHot;
-    window.__SB_ZONE_PERFECT = state.zonePerfect;
+    window.__SB_ZONE_PERFECT = state.zoneUlt;
+    window.__SB_COMBO = state.combo;
+    window.__SB_D = state.player && state.shots[0]
+      ? Math.hypot(state.shots[0].x - state.player.x, state.shots[0].y - state.player.y)
+      : null;
     window.__SB_SHOTS = state.shots.length;
     window.__SB_RETURNS = state.returns;
   }
@@ -1081,47 +1148,46 @@
     ctx.stroke();
   }
 
-  function roundRectPath(x, y, w, h, r) {
-    const radius = Math.min(r, w * 0.5, h * 0.5);
+  function fillFan(inner, outer, half, face) {
     ctx.beginPath();
-    ctx.moveTo(x + radius, y);
-    ctx.arcTo(x + w, y, x + w, y + h, radius);
-    ctx.arcTo(x + w, y + h, x, y + h, radius);
-    ctx.arcTo(x, y + h, x, y, radius);
-    ctx.arcTo(x, y, x + w, y, radius);
+    ctx.arc(0, 0, outer, face - half, face + half);
+    ctx.arc(0, 0, inner, face + half, face - half, true);
     ctx.closePath();
   }
 
-  function paintGate(px, py, hot, perfectHot, flash) {
-    const g = gateRect(px, py);
-    roundRectPath(g.x, g.y, g.w, g.h, 8);
-    ctx.fillStyle = hot ? CFG.colorParryZoneActive : CFG.colorParryZone;
+  function paintFan(px, py, hot, ultHot, flash) {
+    const face = CFG.parryZoneFacingRadians;
+    ctx.save();
+    ctx.translate(px, py);
+    fillFan(CFG.parryZoneInnerRadiusPixels, CFG.parryZoneOuterRadiusPixels, CFG.parryZoneHalfAngleRadians, face);
+    ctx.fillStyle = hot && !ultHot ? CFG.colorParryZoneActive : CFG.colorParryZone;
     ctx.fill();
     ctx.lineWidth = hot ? 4 : 3;
     ctx.strokeStyle = CFG.colorParryZoneEdge;
     ctx.stroke();
 
-    const stripeH = CFG.parryPerfectHalfHeightPixels * 2;
-    const stripeY = g.cy - CFG.parryPerfectHalfHeightPixels;
-    const inset = 10;
-    roundRectPath(g.x + inset, stripeY, g.w - inset * 2, stripeH, 3);
-    ctx.fillStyle = flash || perfectHot ? '#ffffff' : CFG.colorReflectShotCore;
+    fillFan(CFG.parryUltInnerRadiusPixels, CFG.parryUltOuterRadiusPixels, CFG.parryUltHalfAngleRadians, face);
+    ctx.fillStyle = ultHot || flash ? '#ffffff' : CFG.colorReflectShotCore;
     ctx.fill();
-    ctx.lineWidth = 2;
+    ctx.lineWidth = ultHot ? 4 : 3;
     ctx.strokeStyle = '#0a0a0a';
     ctx.stroke();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = CFG.colorParryZone;
+    ctx.stroke();
+    ctx.restore();
 
     if (hot) {
       ctx.save();
-      ctx.font = '900 22px Dela Gothic One, sans-serif';
+      ctx.font = '900 26px Dela Gothic One, sans-serif';
       ctx.textAlign = 'center';
-      ctx.lineWidth = 4;
+      ctx.lineWidth = 5;
       ctx.strokeStyle = '#0a0a0a';
-      ctx.fillStyle = perfectHot ? '#ffffff' : CFG.colorParryZoneEdge;
-      const label = perfectHot ? 'パーフェクト！' : '返せ！';
-      ctx.strokeText(label, px, g.y - 10);
-      ctx.fillStyle = perfectHot ? CFG.colorPerfect : CFG.colorParryZoneActive;
-      ctx.fillText(label, px, g.y - 10);
+      const label = ultHot ? 'ウルト！' : '返せ！';
+      const labelY = py - CFG.parryZoneOuterRadiusPixels - 8;
+      ctx.strokeText(label, px, labelY);
+      ctx.fillStyle = ultHot ? CFG.colorPerfect : CFG.colorParryZoneActive;
+      ctx.fillText(label, px, labelY);
       ctx.restore();
     }
   }
@@ -1129,7 +1195,7 @@
   function drawParryZone() {
     const p = state.player;
     if (!p) return;
-    paintGate(p.x, p.y, state.zoneHot, state.zonePerfect, state.perfectFlash > 0);
+    paintFan(p.x, p.y, state.zoneHot, state.zoneUlt, state.perfectFlash > 0);
   }
 
   function drawPlayer() {
@@ -1290,15 +1356,41 @@
     }
     for (const s of state.reflectShots) {
       if (!s.alive) continue;
-      drawShotBall(
-        s.x,
-        s.y,
-        s.r,
-        s.perfect ? CFG.colorPerfect : CFG.colorReflectShot,
-        CFG.colorReflectShotEdge,
-        CFG.colorReflectShotCore
-      );
+      if (s.ult) drawUltBullet(s);
+      else drawShotBall(s.x, s.y, s.r, CFG.colorReflectShot, CFG.colorReflectShotEdge, CFG.colorReflectShotCore);
     }
+  }
+
+  function drawDiamond(x, y, r, fill) {
+    ctx.beginPath();
+    ctx.moveTo(x, y - r);
+    ctx.lineTo(x + r * 0.62, y);
+    ctx.lineTo(x, y + r);
+    ctx.lineTo(x - r * 0.62, y);
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#0a0a0a';
+    ctx.stroke();
+  }
+
+  function drawUltBullet(s) {
+    const grow = s.grow == null ? 1 : s.grow;
+    const r = s.r * (0.4 + 0.6 * grow);
+    if (s.trail) {
+      for (const crumb of s.trail) {
+        const a = Math.max(0, crumb.life / CFG.ultTrailLifetimeSeconds);
+        drawDiamond(crumb.x, crumb.y, r * 0.42 * a, s.awake ? CFG.colorPerfect : CFG.colorParryZone);
+      }
+    }
+    if (s.awake) drawDiamond(s.x, s.y, r * 1.35, '#1a1200');
+    drawDiamond(s.x, s.y, r, s.awake ? '#ffffff' : CFG.colorPerfect);
+    drawDiamond(s.x, s.y, r * 0.45, CFG.colorVfxCore);
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, Math.max(3, r * 0.22), 0, Math.PI * 2);
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fill();
   }
 
   function drawEffects() {
@@ -1326,6 +1418,19 @@
         ctx.lineWidth = 2;
         ctx.strokeStyle = CFG.colorVfxEdge;
         ctx.stroke();
+      } else if (ef.kind === 'slash') {
+        ctx.save();
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = '#0a0a0a';
+        ctx.lineWidth = ef.awake ? 16 : 11;
+        ctx.beginPath();
+        ctx.moveTo(ef.x, ef.y);
+        ctx.lineTo(ef.x2, ef.y2);
+        ctx.stroke();
+        ctx.strokeStyle = ef.awake ? '#ffffff' : CFG.colorPerfect;
+        ctx.lineWidth = ef.awake ? 7 : 5;
+        ctx.stroke();
+        ctx.restore();
       } else if (ef.kind === 'callout') {
         ctx.save();
         ctx.globalAlpha = Math.max(0, Math.min(1, a * 1.5));
@@ -1380,7 +1485,7 @@
   }
 
   function drawParryZoneIdle() {
-    paintGate(CFG.playerXPixels, CFG.playerYPixels, false, false, false);
+    paintFan(CFG.playerXPixels, CFG.playerYPixels, false, false, false);
   }
 
   function drawIdlePreview() {
