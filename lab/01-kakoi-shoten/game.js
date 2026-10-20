@@ -629,16 +629,19 @@
   // —— Simulation ——
   function tryStartDraw() {
     if (state.drawing || !state.player) return;
-    const { c, r } = cellOf(state.player.x, state.player.y);
-    if (!isBorderCell(c, r) && !isClaimed(c, r)) {
-      const snap = nearestBorderPoint(state.player.x, state.player.y);
-      state.player.x = snap.x;
-      state.player.y = snap.y;
+    // If the press is near a frame, relocate the shopkeeper there first (pointer-friendly).
+    const pressSnap = nearestBorderPoint(pointer.x, pointer.y);
+    if (dist(pointer.x, pointer.y, pressSnap.x, pressSnap.y) <= CELL * 4) {
+      state.player.x = pressSnap.x;
+      state.player.y = pressSnap.y;
+    } else {
+      const { c, r } = cellOf(state.player.x, state.player.y);
+      if (!isBorderCell(c, r) && !isClaimed(c, r)) {
+        const snap = nearestBorderPoint(state.player.x, state.player.y);
+        state.player.x = snap.x;
+        state.player.y = snap.y;
+      }
     }
-    // need pointer aiming into open
-    const dx = pointer.x - state.player.x;
-    const dy = pointer.y - state.player.y;
-    if (Math.hypot(dx, dy) < CFG.pointerFollowDeadzonePixels) return;
 
     state.drawing = true;
     state.trail = [{ x: state.player.x, y: state.player.y }];
@@ -822,11 +825,26 @@
       let vy = cust.vy;
       if (waitingOnBorder && state.player) {
         const d = dist(cust.x, cust.y, state.player.x, state.player.y);
-        if (d < lureR && d > 1) {
-          const pull = CFG.customerLureSpeedPixelsPerSecond * CFG.customerBorderApproachBias;
-          vx += ((state.player.x - cust.x) / d) * pull;
-          vy += ((state.player.y - cust.y) / d) * pull;
+        if (d > 8) {
+          const ux = (state.player.x - cust.x) / d;
+          const uy = (state.player.y - cust.y) / d;
+          // weak global drift so waiting always matters
+          vx += ux * CFG.customerLureGlobalPullPixelsPerSecond;
+          vy += uy * CFG.customerLureGlobalPullPixelsPerSecond;
+          if (d < lureR) {
+            const falloff = 1 - d / lureR;
+            const pull =
+              CFG.customerLureSpeedPixelsPerSecond * CFG.customerBorderApproachBias * (0.45 + falloff);
+            vx = vx * 0.3 + ux * pull;
+            vy = vy * 0.3 + uy * pull;
+          }
         }
+      }
+      const spd = Math.hypot(vx, vy);
+      const maxSpd = CFG.customerLureSpeedPixelsPerSecond * 1.15;
+      if (spd > maxSpd) {
+        vx = (vx / spd) * maxSpd;
+        vy = (vy / spd) * maxSpd;
       }
 
       let nx = cust.x + vx * dt;
@@ -871,14 +889,15 @@
 
   function updateCollectors(dt) {
     const baseSpd = collectorSpeed();
+    const dayElapsed = CFG.dayDurationSeconds - state.dayTimeLeft;
+    const mayChaseLine = dayElapsed >= CFG.collectorLineChaseDelaySeconds;
     for (const col of state.collectors) {
       col.changeIn -= dt;
       col.telegraph = false;
 
-      // prefer chasing active trail
+      // prefer chasing active trail (after a short day grace so the first cut is readable)
       let target = null;
-      if (state.drawing && state.trail.length) {
-        // chase nearest trail point
+      if (mayChaseLine && state.drawing && state.trail.length) {
         let bestD = Infinity;
         for (let i = 0; i < state.trail.length; i += 2) {
           const t = state.trail[i];
@@ -888,7 +907,6 @@
             target = t;
           }
         }
-        // also chase player tip
         if (state.player) {
           const d = dist(col.x, col.y, state.player.x, state.player.y);
           if (d < bestD) {
@@ -934,8 +952,8 @@
       col.x = nx;
       col.y = ny;
 
-      // hit trail?
-      if (state.drawing && state.invincibleRemaining <= 0) {
+      // hit trail? (skip during day-open grace so the first cut is readable)
+      if (mayChaseLine && state.drawing && state.invincibleRemaining <= 0) {
         if (pointNearTrail(col.x, col.y, CFG.collectorHitPlayerRadiusPixels)) {
           cancelLine(true);
           return;
@@ -1190,24 +1208,32 @@
     if (state.mode === 'playing') {
       if (pointer.justDown) tryStartDraw();
       if (pointer.justUp && state.drawing) {
-        // release to close if possible — only if trail long enough and near border
         const { c, r } = cellOf(state.player.x, state.player.y);
         if (isClaimed(c, r) && state.trailCells.length >= 3) {
           closeEnclosure();
         } else if (state.trailCells.length >= 3) {
-          // try snap-close if near border
           const snap = nearestBorderPoint(state.player.x, state.player.y);
-          if (dist(state.player.x, state.player.y, snap.x, snap.y) <= CFG.closeSnapDistancePixels) {
+          const snapDist = dist(state.player.x, state.player.y, snap.x, snap.y);
+          // Near-frame release assists close (fair return); deep mid-field release cancels (escapable).
+          if (snapDist <= CFG.closeReleaseAssistPixels) {
+            // stitch trail to border then close
+            const steps = Math.ceil(snapDist / (CELL * 0.4));
+            const ox = state.player.x;
+            const oy = state.player.y;
+            for (let s = 1; s <= steps; s++) {
+              const x = ox + ((snap.x - ox) * s) / steps;
+              const y = oy + ((snap.y - oy) * s) / steps;
+              state.trail.push({ x, y });
+              const cell = cellOf(x, y);
+              if (!isClaimed(cell.c, cell.r)) markTrailCell(cell.c, cell.r);
+            }
             state.player.x = snap.x;
             state.player.y = snap.y;
             closeEnclosure();
           } else {
-            // release mid-field: keep drawing? Design: release OR reach border to close.
-            // Mid-field release cancels without damage (escapable).
             resetTrail();
-            const b = nearestBorderPoint(state.player.x, state.player.y);
-            state.player.x = b.x;
-            state.player.y = b.y;
+            state.player.x = snap.x;
+            state.player.y = snap.y;
           }
         } else {
           resetTrail();

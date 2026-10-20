@@ -7,7 +7,7 @@ import { readFile } from 'node:fs/promises';
 import { join, extname, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = 8765;
@@ -37,21 +37,17 @@ function startServer() {
 }
 
 async function main() {
-  // Prefer puppeteer-core if available; otherwise install locally for this run.
-  let puppeteer;
-  try {
-    puppeteer = await import('puppeteer-core');
-  } catch {
-    console.log('Installing puppeteer-core…');
+  const base = '/tmp/kakoi-playtest-npm';
+  const modPath = join(base, 'node_modules/puppeteer-core/lib/esm/puppeteer/puppeteer-core.js');
+  if (!existsSync(modPath)) {
+    console.log('Installing puppeteer-core into /tmp…');
+    mkdirSync(base, { recursive: true });
     await new Promise((resolve, reject) => {
-      const p = spawn('npm', ['install', '--no-save', 'puppeteer-core@23'], {
-        cwd: __dirname,
-        stdio: 'inherit',
-      });
+      const p = spawn('npm', ['install', '--prefix', base, 'puppeteer-core@23'], { stdio: 'inherit' });
       p.on('exit', (code) => (code === 0 ? resolve() : reject(new Error('npm install failed'))));
     });
-    puppeteer = await import('puppeteer-core');
   }
+  const puppeteer = await import(modPath);
 
   const server = await startServer();
   const browser = await puppeteer.default.launch({
