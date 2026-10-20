@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>かこい商店</title>
+    <meta name="description" content="陣取りだけど、囲うのは土地じゃなくて客。" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <button type="button" id="mute">音声オン</button>
+    <div id="app">
+      <header id="hud" aria-label="きょうの数字">
+        <div class="stat" id="stat-rent">
+          <span class="k">家賃</span>
+          <span class="v" id="v-rent">¥0</span>
+        </div>
+        <div class="stat" id="stat-sales">
+          <span class="k">売上</span>
+          <span class="v" id="v-sales">¥0</span>
+        </div>
+        <div class="stat" id="stat-time">
+          <span class="k">のこり時間</span>
+          <span class="v" id="v-time">45</span>
+        </div>
+        <div class="stat" id="stat-day">
+          <span class="k">日数</span>
+          <span class="v" id="v-day">1日目</span>
+        </div>
+      </header>
+      <div id="stage">
+        <canvas id="game" width="480" height="360"></canvas>
+      </div>
+      <section id="panel" aria-live="polite"></section>
+      <footer id="hint">
+        <p id="status"></p>
+        <button type="button" id="pause">一時停止</button>
+      </footer>
+    </div>
+    <script src="config.js"></script>
+    <script src="audio.js"></script>
+    <script src="game.js"></script>
+  </body>
+</html>

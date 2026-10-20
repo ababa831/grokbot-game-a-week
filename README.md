@@ -11,4 +11,10 @@
 | 2026-W37 | 置き換えろ (Swap Places) | クリックした相手と場所が入れ替わる。敵の足元が自分の足元になる。 | [`weeks/2026-w37-swap-places/`](weeks/2026-w37-swap-places/) |
 | 2026-W38 | 返せ (Send Back) | タイミングで弾を打ち返す。敵の弾が敵を倒す。 | [`weeks/2026-w38-send-back/`](weeks/2026-w38-send-back/) |
 
+ラボ（週次とは別の試作）:
+
+| Lab | Title | Hook | Path |
+|-----|-------|------|------|
+| 01 | かこい商店 | 陣取りだけど、囲うのは土地じゃなくて客。 | [`lab/01-kakoi-shoten/`](lab/01-kakoi-shoten/) |
+
 各週は `weeks/<id>/index.html` を開けばビルドなしでプレイできる（GitHub Pages 想定）。
