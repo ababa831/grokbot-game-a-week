@@ -4,11 +4,11 @@
 
 ドキュメント: [docs/README.md](./docs/README.md)
 
-## Game Lab
+## ゲームラボ
 
-| Loop | Title | Hook | Path |
-|------|-------|------|------|
-| 01 | かこい商店 (Kakoi Shōten) | 陣取りだけど、囲うのは土地じゃなくて客。 | [`lab/01-kakoi-shoten/`](lab/01-kakoi-shoten/) |
+| 回 | タイトル | フック | パス |
+|----|----------|--------|------|
+| 01 | かこい商店 | 陣取りだけど、囲うのは土地じゃなくて客。 | [`lab/01-kakoi-shoten/`](lab/01-kakoi-shoten/) |
 
 ## Weeks
 
