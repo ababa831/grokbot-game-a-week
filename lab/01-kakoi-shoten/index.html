@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>かこい商店 — Kakoi Shōten</title>
+    <meta name="description" content="陣取りだけど、囲うのは土地じゃなくて客。枠で待って、短く切って、¥に変えろ。" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <button type="button" id="mute-btn" aria-pressed="false">音声オン</button>
+    <div id="wrap">
+      <div id="hud" aria-live="polite">
+        <div class="hud-cell rent">
+          <div class="hud-label">家賃</div>
+          <div class="hud-value">
+            <span id="hud-rent">¥100</span><span class="day-tag" id="hud-day">1日目</span>
+          </div>
+        </div>
+        <div class="hud-cell sales">
+          <div class="hud-label">売上</div>
+          <div class="hud-value" id="hud-sales">¥0</div>
+        </div>
+        <div class="hud-cell timer" id="hud-timer-cell">
+          <div class="hud-label">のこり時間</div>
+          <div class="hud-value" id="hud-timer">45</div>
+        </div>
+      </div>
+
+      <div id="canvas-frame">
+        <canvas id="game" width="704" height="464"></canvas>
+        <div id="overlay">
+          <div id="overlay-inner"></div>
+        </div>
+      </div>
+
+      <div id="hint-bar">
+        <span>長押しで線を伸ばす・離すか枠に戻ると囲う</span>
+        <span class="lives">いのち <span id="hud-lives">1</span></span>
+        <span>枠で待つと客が寄る</span>
+      </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="audio.js"></script>
+    <script src="game.js"></script>
+  </body>
+</html>
